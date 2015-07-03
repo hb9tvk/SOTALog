@@ -178,7 +178,7 @@ proc logwindow {ref info} {
     bind .suggest.txt <ButtonPress> {pickSuggestion %x %y}
     bind .suggest.txt <ButtonRelease> { focus .sotalog.rsts }
     
-    label .footer -text "F9: S2S entry   F10: Configuration" -font sotamicro
+    label .footer -text "F8: Toggle Mode   F9: S2S entry   F10: Configuration" -font sotamicro
     
     grid .sotalog -in .top -row 0 -column 0 -sticky s
     grid .bandmap -in .top -row 0 -column 1 -sticky e
