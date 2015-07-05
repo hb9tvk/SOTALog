@@ -15,9 +15,9 @@ proc enterRef {} {
     grid .ref.label -row 0 -column 0
     grid .ref.ref -row 0 -column 1
 
-    focus .ref.ref
     pack .ref
-
+    focus -force .ref.ref
+    raise .ref
 }
 
 proc processRef {validation action new vaction} {
