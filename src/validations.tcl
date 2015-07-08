@@ -19,6 +19,24 @@ proc getBasecall {call} {
     return $call
 }
 
+proc processUTC {validation action new vaction newval} {
+    if {$vaction == "key" && $action == 1} {
+    	if {$new == " "} {
+            focus .sotalog.call
+            return 0
+        }
+	if {![regexp {[0-9]} $new]} { return 0 }
+	.sotalog.utc insert insert $new
+	after idle [list .sotalog.utc configure -validate $validation]
+
+	if {[string length [.sotalog.utc get]] == 4} {
+	    focus .sotalog.call
+	    return 1
+	}
+    }
+    return 1
+}
+
 proc processCall {validation action new vaction newval} {
 
     global names sinfo sotacalls mode

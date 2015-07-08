@@ -25,11 +25,19 @@ proc readLog {} {
 
 proc openLog {ref} {
 
-    global logfile adif
+    global logfile adif utcDate entryMode
 
     regsub / $ref _ ref
     set logfile "[clock format [clock seconds] -format %Y-%m-%d]_${ref}.csv"
     set adif  "[clock format [clock seconds] -format %Y-%m-%d]_${ref}.adi"
+    
+    if {$entryMode} {
+	if {[regexp {([0-9]+)/([0-9]+)/([0-9]+)} $utcDate - dd mm yy]} {
+	    set logfile "${yy}-${mm}-${dd}_${ref}.csv"
+	    set adif  "${yy}-${mm}-${dd}_${ref}.adi"
+	}
+    }
+    
     if {[file exists $logfile]} {
 	readLog
     }		
@@ -37,17 +45,27 @@ proc openLog {ref} {
 
 proc saveLog {} {
 
-    global box band ref logfile w2f adif myCall s2s cwd mode
+    global box band ref logfile w2f adif myCall s2s cwd mode entryMode utcDate
 
     if {[string length [.sotalog.call get]] == 0} {
         clear
         return
     }
+    
     set utc [clock format [clock seconds] -gmt true -format %H%M]
+    set csvdate [clock format [clock seconds] -format %d/%m/%Y]
+    set adifdate [clock format [clock seconds] -format %Y%m%d]
+	
+    if {$entryMode} {
+	set utc [.sotalog.utc get]
+	set csvdate $utcDate
+	if {[regexp {([0-9]+)/([0-9]+)/([0-9]+)} $csvdate - dd mm yy]} {
+	    set adifdate ${yy}${mm}${dd}
+	}
+    }
 
     insertLog $utc [.sotalog.call get] [.sotalog.rsts get] [.sotalog.rstr get] [.sotalog.rem get] 
-
-    set csvdate [clock format [clock seconds] -format %d/%m/%Y]
+    
     set call [string trim [.sotalog.call get]]
     if {![string length $s2s]} {
         set rem "RSTS:[.sotalog.rsts get] RSTR:[.sotalog.rstr get] [.sotalog.rem get]"
@@ -62,7 +80,7 @@ proc saveLog {} {
     # <qso_date:8:d>20120728 <time_on:4>1208 <call:6>OM3CHR <band:3>30M 
     # <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>599 <station_callsign:8>HB9TVK/P <APP_DXKeeper_TEMP:14>SOTA HB/LU-021 <eor>
 
-    set ad "<qso_date:8:d>[clock format [clock seconds] -format %Y%m%d] "
+    set ad "<qso_date:[string length $adifdate]:d>$adifdate "
     append ad "<time_on:4>$utc "
     append ad "<call:[string length $call]>$call "
     append ad "<band:[string length $band]>[string toupper $band] "
