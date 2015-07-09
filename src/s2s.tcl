@@ -194,7 +194,7 @@ proc s2sDialog {} {
     global assocs s2s
     
     toplevel .s2s 
-    wm title . "S2S entry"
+    wm title .s2s "S2S entry"
 
     set ok {set ::Modal.Result 1}
     set cancel {set ::Modal.Result 0}

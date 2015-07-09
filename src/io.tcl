@@ -67,11 +67,18 @@ proc saveLog {} {
     insertLog $utc [.sotalog.call get] [.sotalog.rsts get] [.sotalog.rstr get] [.sotalog.rem get] 
     
     set call [string trim [.sotalog.call get]]
-    if {![string length $s2s]} {
-        set rem "RSTS:[.sotalog.rsts get] RSTR:[.sotalog.rstr get] [.sotalog.rem get]"
-    } else {
-        set rem "RSTS:[.sotalog.rsts get] RSTR:[.sotalog.rstr get] S2S:$s2s [.sotalog.rem get]"
+    set rem ""
+    if {[string length [.sotalog.rsts get]]} {
+	append rem "RSTS:[.sotalog.rsts get] "
     }
+    if {[string length [.sotalog.rstr get]]} {
+	append rem "RSTR:[.sotalog.rstr get] "
+    }
+    if {[string length $s2s]} {
+        append rem "S2S:$s2s "
+    }
+    append rem [.sotalog.rem get]
+    set rem [string trim $rem]
     #set csv "$myCall,$csvdate,$utc,$ref,$w2f($band),CW,$call,RSTS:[.sotalog.rsts get] RSTR:[.sotalog.rstr get] [.sotalog.rem get]" 
     set csv "V2,$myCall,$ref,$csvdate,$utc,$w2f($band),$mode,$call,$s2s,\"${rem}\"" 
     set fh [open [file join $cwd $logfile] a]
