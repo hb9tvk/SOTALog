@@ -142,7 +142,7 @@ proc processRSTr {validation action new vaction} {
 proc filterRemark {action key} {
     if {$action == 1} {
 	if {[regexp {[\ -~]} $key]} { return 1}
-        if {[regexp {[^[:print:]|} $key]} {
+        if {[regexp {[^[:print:]]} $key]} {
             return 0
         }
     }

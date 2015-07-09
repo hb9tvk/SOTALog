@@ -2,6 +2,7 @@ proc readLog {} {
     global logfile bandlist band cwd mode
 
     set fh [open [file join $cwd $logfile] r]
+    fconfigure $fh -encoding utf-8
     while {![eof $fh]} {
         gets $fh csvline
         if {![string length $csvline]} { continue }
@@ -82,6 +83,7 @@ proc saveLog {} {
     #set csv "$myCall,$csvdate,$utc,$ref,$w2f($band),CW,$call,RSTS:[.sotalog.rsts get] RSTR:[.sotalog.rstr get] [.sotalog.rem get]" 
     set csv "V2,$myCall,$ref,$csvdate,$utc,$w2f($band),$mode,$call,$s2s,\"${rem}\"" 
     set fh [open [file join $cwd $logfile] a]
+    fconfigure $fh -encoding utf-8
     puts $fh $csv
     close $fh
     # <qso_date:8:d>20120728 <time_on:4>1208 <call:6>OM3CHR <band:3>30M 
@@ -103,9 +105,10 @@ proc saveLog {} {
     if {[string length [.sotalog.rem get]]} {
         append comment " Remark: [.sotalog.rem get]"
     }
-    append ad "<comment:[string length $comment]>$comment <eor>"
+    append ad "<comment_intl:[string length $comment]>$comment <eor>"
     
     set fh [open [file join $cwd $adif] a]
+    fconfigure $fh -encoding utf-8
     puts $fh $ad
     close $fh
     clear
