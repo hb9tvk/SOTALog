@@ -104,7 +104,7 @@ proc logwindow {ref info} {
 
     global band box qsocount bandlist tcl_platform mode entryMode
 
-    wm title . "SOTALog by HB9TVK"
+    wm title . "SOTALog v2.2 by HB9TVK"
     wm geometry . "800x480+0+0"
     update idletasks
 

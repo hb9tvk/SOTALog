@@ -1,4 +1,4 @@
-package provide SOTALog 2.1
+package provide SOTALog 2.2
 
 package require Tk
 package require http
