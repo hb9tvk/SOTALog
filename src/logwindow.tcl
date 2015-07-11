@@ -1,6 +1,6 @@
 
 proc clear {} {
-    global sinfo s2s mode
+    global sinfo s2s mode entryMode
     .sotalog.call delete 0 end
     .sotalog.rsts delete 0 end
     .sotalog.rstr delete 0 end
@@ -9,7 +9,12 @@ proc clear {} {
     .sotalog.info configure -text "$sinfo Mode: $mode" -fg black
     .sotalog.s2s configure -text ""
     set s2s ""
-    focus .sotalog.call
+    if {$entryMode} {
+	.sotalog.utc delete 0 end
+	focus .sotalog.utc
+    } else {
+	focus .sotalog.call
+    }
 }
 
 proc initCounter {} {
@@ -97,9 +102,9 @@ proc insertLog {utc call rsts rstr rem} {
 
 proc logwindow {ref info} {
 
-    global band box qsocount bandlist tcl_platform mode
+    global band box qsocount bandlist tcl_platform mode entryMode
 
-    wm title . "SOTALog by HB9TVK"
+    wm title . "SOTALog v2.2 by HB9TVK"
     wm geometry . "800x480+0+0"
     update idletasks
 
@@ -129,22 +134,32 @@ proc logwindow {ref info} {
     label .sotalog.lrem -text Remarks
     label .sotalog.s2s -text "" -font sotamini
 
+    set remwidth 6
+    if {$entryMode} {
+	entry .sotalog.utc -font sotahuge -width 4 -highlightthickness 4 -highlightcolor red -validatecommand {processUTC %v %d %S %V %P} -validate all
+	label .sotalog.lutc -text UTC
+	set remwidth 3
+    }
+    
     entry .sotalog.call -font sotahuge -width 12 -highlightthickness 4 -highlightcolor red -validatecommand {processCall %v %d %S %V %P} -validate all
     entry .sotalog.rsts -width 3 -font sotahuge -highlightthickness 4 -highlightcolor red -validatecommand {processRSTs %v %d %S %V} -validate all
     entry .sotalog.rstr -width 3 -font sotahuge -highlightthickness 4 -highlightcolor red -validatecommand {processRSTr %v %d %S %V} -validate all
-    entry .sotalog.rem  -width 6 -font sotahuge -highlightthickness 4 -highlightcolor red -validate key -validatecommand {filterRemark %d %S}
+    entry .sotalog.rem  -width $remwidth -font sotahuge -highlightthickness 4 -highlightcolor red -validate key -validatecommand {filterRemark %d %S}
 
-    grid .sotalog.ref -row 0 -column 0 -columnspan 4 -sticky n
-    grid .sotalog.info -row 1 -column 0 -columnspan 4 -sticky n
-    grid .sotalog.s2s -row 2 -column 0 -columnspan 4 -sticky n
-    grid .sotalog.call -row 3 -column 0 -sticky w
-    grid .sotalog.rsts -row 3 -column 1
-    grid .sotalog.rstr -row 3 -column 2
-    grid .sotalog.rem -row 3 -column 3
-    grid .sotalog.lcall -row 4 -column 0 -sticky w
-    grid .sotalog.lrsts -row 4 -column 1
-    grid .sotalog.lrstr -row 4 -column 2
-    grid .sotalog.lrem -row 4 -column 3
+    grid .sotalog.ref -row 0 -column 0 -columnspan 5 -sticky n
+    grid .sotalog.info -row 1 -column 0 -columnspan 5 -sticky n
+    grid .sotalog.s2s -row 2 -column 0 -columnspan 5 -sticky n
+    if {$entryMode} {
+	grid .sotalog.utc .sotalog.call .sotalog.rsts .sotalog.rstr .sotalog.rem  -row 3 -sticky w
+    } else {
+	grid .sotalog.call .sotalog.rsts .sotalog.rstr .sotalog.rem  -row 3 -sticky w
+    }
+ 
+    if {$entryMode} {
+	grid .sotalog.lutc .sotalog.lcall .sotalog.lrsts .sotalog.lrstr .sotalog.lrem -row 4  -sticky w
+    } else {
+	grid .sotalog.lcall .sotalog.lrsts .sotalog.lrstr .sotalog.lrem -row 4 -sticky w
+    }
 
     frame .bandmap
     set i 0
@@ -187,6 +202,9 @@ proc logwindow {ref info} {
     grid .footer -in .top -row 3 -column 0 -columnspan 2 -sticky s
 
     pack .top
-    focus .sotalog.call
-
+    if {$entryMode} {
+	focus .sotalog.utc
+    } else {
+	focus .sotalog.call
+    }
 }

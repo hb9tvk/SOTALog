@@ -1,7 +1,7 @@
 
 proc updateCallsAndSummits {} {
     
-    global cwd
+    global cwd updated
     
     .cfg.ok configure -state disabled
     .cfg.cancel configure -state disabled
@@ -34,6 +34,7 @@ proc updateCallsAndSummits {} {
     }
     
     tk_messageBox -icon info -message "Summits and calls updated successfully" -type ok
+    set updated 1
     .cfg.ok configure -state normal
     .cfg.cancel configure -state normal
     .cfg.update configure -state normal

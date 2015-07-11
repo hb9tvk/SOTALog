@@ -11,6 +11,8 @@ proc enterRef {} {
 
     label .ref.label -text "Enter SOTA REF:" -font sotabig
     entry .ref.ref -width 11 -font sotabig -bd 1 -validatecommand {processRef %v %d %S %V} -validate all
+    
+
 
     grid .ref.label -row 0 -column 0
     grid .ref.ref -row 0 -column 1
