@@ -92,7 +92,7 @@ proc saveLog {} {
     set ad "<qso_date:[string length $adifdate]:d>$adifdate "
     append ad "<time_on:4>$utc "
     append ad "<call:[string length $call]>$call "
-    append ad "<band:[string length $band]>[string toupper $band] "
+    append ad "<band:[string length [string trim $band]]>[string toupper [string trim $band]] "
     append ad "<mode:[string length $mode]>$mode "
     append ad "<rst_sent:3>[.sotalog.rsts get] "
     append ad "<rst_rcvd:3>[.sotalog.rstr get] "
