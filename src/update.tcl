@@ -10,7 +10,7 @@ proc updateCallsAndSummits {} {
     .cfg.okrprt configure -state disabled
     
     if  {[catch {
-        set t [::http::geturl http://sota.hb9tvk.org/sotalog/summits.thm -timeout 30000]
+        set t [::http::geturl http://sota.hb9tvk.org/sotalog/summits.thm -timeout 120000]
         set su [::http::data $t]
         ::http::cleanup $t
     } msg]} {
