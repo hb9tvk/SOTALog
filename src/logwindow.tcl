@@ -125,7 +125,7 @@ proc logwindow {ref info} {
     frame .top
 
     frame .sotalog
-    label .sotalog.ref -text $ref -font sotabig
+    label .sotalog.ref -text [string range $ref 0 31] -font sotabig
     label .sotalog.info -text $info -font sotabig 
 
     label .sotalog.lcall -text Call
