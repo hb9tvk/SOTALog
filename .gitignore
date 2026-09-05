@@ -7,6 +7,7 @@
 
 # Runtime files written next to the application by the user's own session.
 /sotalog.conf
+/sotalog.conf.new
 /*.csv
 /*.adi
 /*.thm.new

@@ -1,0 +1,163 @@
+# Reading and writing sotalog.conf.
+#
+# The file is parsed rather than evaluated.  It used to be run through eval,
+# which made it a script: a value with a space in it stopped the application
+# starting, and a value with a bracket in it was executed.  The activation
+# date field has no validation, so either was one keystroke away.
+
+set ::env(TZ) UTC
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+freezeClock 1757073930   ;# so the default activation date is 05/09/2025
+
+# saveConfig reads the two fields of the configuration dialog.  Only those two
+# are needed here; building the whole dialog would drag in its modal loop.
+toplevel .cfg
+entry .cfg.call
+entry .cfg.utcDate
+wm withdraw .cfg
+
+proc writeConfig {dir contents} {
+    set fh [open [file join $dir sotalog.conf] w]
+    puts -nonewline $fh $contents
+    close $fh
+}
+
+set valid "set myCall HB9TVK/P\nset oneKeyReport 1\nset entryMode 1\nset utcDate 05/09/2026\n"
+
+test parse-normal {a well-formed file yields every setting} -body {
+    parseConfig $valid
+} -result {myCall HB9TVK/P oneKeyReport 1 entryMode 1 utcDate 05/09/2026}
+
+test parse-value-with-spaces {a value containing spaces is kept verbatim} -body {
+    dict get [parseConfig "set utcDate 5 September 2026\n"] utcDate
+} -result {5 September 2026}
+
+test parse-bracket-is-literal {a bracketed value is text, not something to run} -setup {
+    set ::executed 0
+} -body {
+    set value [dict get [parseConfig "set utcDate \[set ::executed 1\]\n"] utcDate]
+    list $value $::executed
+} -result {{[set ::executed 1]} 0}
+
+test parse-unknown-setting {a setting that is not ours is ignored} -body {
+    dict keys [parseConfig "set myCall HB9TVK\nset somethingElse 42\n"]
+} -result myCall
+
+test parse-comments-and-blanks {blank lines and comments are skipped} -body {
+    parseConfig "\n# a comment\n\nset myCall HB9TVK\n\n"
+} -result {myCall HB9TVK}
+
+test parse-garbage {a line that is not a setting is ignored, not fatal} -body {
+    parseConfig "set myCall HB9TVK\nexec something dangerous\nset entryMode 1\n"
+} -result {myCall HB9TVK entryMode 1}
+
+test parse-truncated {a file cut off mid-write yields what survived} -body {
+    parseConfig "set myCall HB9TVK/P\nset oneKeyRep"
+} -result {myCall HB9TVK/P}
+
+test load-normal {a valid file reaches the globals} -setup {
+    set ::cwd [sandbox]
+    writeConfig $::cwd $valid
+} -body {
+    loadConfig
+    list $::myCall $::oneKeyReport $::entryMode $::utcDate
+} -result {HB9TVK/P 1 1 05/09/2026}
+
+test load-spaces-does-not-crash {a date with spaces loads instead of killing startup
+    This is the case that used to stop the application: eval saw
+    "set utcDate 5 September 2026" as a set with too many arguments.
+} -setup {
+    set ::cwd [sandbox]
+    writeConfig $::cwd "set myCall HB9TVK/P\nset entryMode 1\nset utcDate 5 September 2026\n"
+} -body {
+    loadConfig
+    list $::myCall $::utcDate
+} -result {HB9TVK/P {5 September 2026}}
+
+test load-bracket-does-not-execute {a bracketed value is not run} -setup {
+    set ::cwd [sandbox]
+    set ::executed 0
+    writeConfig $::cwd "set myCall HB9TVK/P\nset utcDate \[set ::executed 1\]\n"
+} -body {
+    loadConfig
+    list $::executed $::utcDate
+} -result {0 {[set ::executed 1]}}
+
+test load-truncated-keeps-defaults {a half-written file falls back rather than failing} -setup {
+    set ::cwd [sandbox]
+    writeConfig $::cwd "set myCall HB9XYZ\nset oneKeyRep"
+} -body {
+    loadConfig
+    # myCall survived; everything after the truncation keeps its default.
+    list $::myCall $::oneKeyReport $::entryMode $::utcDate
+} -result {HB9XYZ 1 0 05/09/2025}
+
+test load-missing-settings-keep-defaults {settings absent from the file keep their defaults} -setup {
+    set ::cwd [sandbox]
+    writeConfig $::cwd "set entryMode 1\n"
+} -body {
+    loadConfig
+    list $::myCall $::oneKeyReport $::entryMode
+} -result {HB9TVK/P 1 1}
+
+test load-missing-file-opens-dialog {a first run with no file asks for one} -setup {
+    set ::cwd [sandbox]
+    rename configDialog realConfigDialog
+    proc configDialog {} { set ::dialogOpened 1 }
+    set ::dialogOpened 0
+} -cleanup {
+    rename configDialog {}
+    rename realConfigDialog configDialog
+} -body {
+    loadConfig
+    set ::dialogOpened
+} -result 1
+
+test save-writes-every-setting {saving produces the four lines, in order} -setup {
+    set ::cwd [sandbox]
+    set ::myCall HB9TVK/P
+    set ::oneKeyReport 1
+    set ::entryMode 1
+    set ::utcDate 05/09/2026
+    setEntry .cfg.call HB9TVK/P
+    setEntry .cfg.utcDate 05/09/2026
+} -body {
+    saveConfig
+    string trim [readFile [file join $::cwd sotalog.conf]]
+} -result "set myCall HB9TVK/P
+set oneKeyReport 1
+set entryMode 1
+set utcDate 05/09/2026"
+
+test save-leaves-no-temp-file {the temporary file used for the atomic write is gone} -setup {
+    set ::cwd [sandbox]
+    setEntry .cfg.call HB9TVK/P
+    setEntry .cfg.utcDate 05/09/2026
+} -body {
+    saveConfig
+    lsort [lmap f [glob -nocomplain -directory $::cwd *] {file tail $f}]
+} -result sotalog.conf
+
+test roundtrip {what saveConfig writes, loadConfig reads back} -setup {
+    set ::cwd [sandbox]
+    set ::myCall HB9XYZ/P
+    set ::oneKeyReport 0
+    set ::entryMode 1
+    set ::utcDate 24/12/2026
+    setEntry .cfg.call HB9XYZ/P
+    setEntry .cfg.utcDate 24/12/2026
+} -body {
+    saveConfig
+    set ::myCall ""
+    set ::oneKeyReport 9
+    set ::entryMode 9
+    set ::utcDate ""
+    loadConfig
+    list $::myCall $::oneKeyReport $::entryMode $::utcDate
+} -result {HB9XYZ/P 0 1 24/12/2026}
+
+removeSandboxes
+cleanupTests

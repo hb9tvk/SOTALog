@@ -1,40 +1,99 @@
 
+# The settings sotalog.conf may carry, in the order they are written.
+# Anything else in the file is ignored.
+set configSettings {myCall oneKeyReport entryMode utcDate}
+
+# Reads "set <name> <value>" lines and returns the settings it recognised.
+#
+# The file used to be run through eval, which made it a script rather than
+# data.  That had two consequences, and the activation date field has no
+# validation, so both were one keystroke away: a value containing a space -
+# a date typed as "5 September 2026" - stopped the application starting with
+# a Tcl stack trace, and a value containing a bracket was executed.  A file
+# left half-written by a crash did the same.
+#
+# The value is taken verbatim to the end of the line, so nothing inside it can
+# change how the rest of the line is read.
+proc parseConfig {text} {
+    global configSettings
+
+    set settings [dict create]
+    set lineNumber 0
+
+    foreach line [split $text \n] {
+        incr lineNumber
+        set line [string trim $line]
+        if {$line eq "" || [string index $line 0] eq "#"} { continue }
+
+        if {![regexp {^set[ \t]+([A-Za-z_][A-Za-z0-9_]*)[ \t]+(.*)$} $line -> name value]} {
+            logMsg error "sotalog.conf line $lineNumber is not a setting, ignored: $line"
+            continue
+        }
+        if {[lsearch -exact $configSettings $name] < 0} {
+            logMsg error "sotalog.conf line $lineNumber names an unknown setting, ignored: $name"
+            continue
+        }
+        dict set settings $name $value
+    }
+
+    return $settings
+}
+
 proc saveConfig {} {
-    
-    global myCall oneKeyReport entryMode utcDate cwd
-    
+
+    global myCall oneKeyReport entryMode utcDate cwd configSettings
+
     if {[string length [.cfg.call get]]} {
         set myCall [.cfg.call get]
     }
     if {$entryMode} {
 	set utcDate [.cfg.utcDate get]
     }
-    catch {
-        set fh [open [file join $cwd sotalog.conf] w]
-        puts $fh "set myCall $myCall"
-        puts $fh "set oneKeyReport $oneKeyReport"
-	puts $fh "set entryMode $entryMode"
-	puts $fh "set utcDate $utcDate"
+
+    # Written to a temporary file and renamed, so that a crash or a flat
+    # battery part way through cannot leave a half-written configuration
+    # behind - which is one of the ways the old code failed to start.
+    set path [file join $cwd sotalog.conf]
+    set tmp $path.new
+    if {[catch {
+        set fh [open $tmp w]
+        foreach name $configSettings {
+            puts $fh "set $name [set $name]"
+        }
         close $fh
-    }    
+        file rename -force $tmp $path
+    } msg]} {
+        catch {file delete $tmp}
+        logMsg error "could not save sotalog.conf: $msg"
+    }
 }
 
 proc loadConfig {} {
 
     global myCall oneKeyReport entryMode cwd utcDate
-    
+
     set myCall HB9TVK/P
     set oneKeyReport 1
     set entryMode 0
     set utcDate [clock format [clock seconds] -format %d/%m/%Y]
 
-    if {[file exists [file join $cwd sotalog.conf]]} {
-        set fh [open [file join $cwd sotalog.conf] r]
-        set cnf [read $fh]
-        eval $cnf
-        close $fh
-    } else {
+    set path [file join $cwd sotalog.conf]
+    if {![file exists $path]} {
         configDialog
+        return
+    }
+
+    if {[catch {open $path r} fh]} {
+        logMsg error "could not read sotalog.conf, using defaults: $fh"
+        return
+    }
+    set text [read $fh]
+    close $fh
+
+    # Every setting already holds its default, so one the file does not
+    # mention, or one it gets wrong, simply keeps it.
+    dict for {name value} [parseConfig $text] {
+        set $name $value
     }
 }
 
