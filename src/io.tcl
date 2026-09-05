@@ -23,8 +23,14 @@ proc readLog {} {
         set rsts ""
         set rstr ""
         set rem ""
-        regexp {RSTS:([0-9]{3})} $allrem - rsts
-        regexp {RSTR:([0-9]{3}) (.*)$} $allrem - rstr rem
+        # The remark column holds "RSTS:nnn RSTR:nnn <remark>", with either
+        # report or the remark possibly absent.  The received report needs the
+        # trailing remark to be optional - requiring a space after it meant
+        # every QSO logged without a remark came back with an empty RSTr - and
+        # the report itself is not always three characters, since SSB reports
+        # are entered as two.
+        regexp {RSTS:([0-9]+)} $allrem - rsts
+        regexp {RSTR:([0-9]+)\s*(.*)$} $allrem - rstr rem
         insertLog $utc $call $rsts $rstr $rem
     }
     close $fh

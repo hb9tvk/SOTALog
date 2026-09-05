@@ -30,6 +30,19 @@ test adif-uses-typed-time {and the ADIF record agrees} -body {
     string trim [readFile [file join $dir $::adif]]
 } -result {<qso_date:8:d>20260905 <time_on:4>0742 <call:6>OK1XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>599 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
 
+test reload-keeps-both-reports {a QSO with reports but no remark keeps its RSTr on reload
+    This is the case that used to lose data: the parse required a space after
+    the received report, so anything logged without a remark came back with an
+    empty RSTr column.
+} -setup {
+    set ::box {}
+    initCounter
+    .loghist.box delete 0 end
+} -body {
+    readLog
+    string trim [lindex $::box 0]
+} -result {0742   OK1XYZ              599       599}
+
 test reload-restores-band {readLog puts the band back where the last QSO was} -setup {
     set ::box {}
     initCounter

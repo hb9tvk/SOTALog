@@ -80,12 +80,7 @@ test reload-preserves-rows {reopening the log restores every QSO} -setup {
     list [llength $::box] $::qsocount(40m)
 } -result {3 3}
 
-test reload-drops-rstr-BUG {reloading loses the received report when there is no remark
-    readLog matches {RSTR:([0-9]{3}) (.*)$}, which needs a space after the
-    report, so a QSO logged without a remark comes back with an empty RSTr
-    column.  The first row here has a remark and survives; the third does not
-    and loses its 339.  Pinned as-is.
-} -setup {
+test reload-parses-remark-column {reloading splits the reports back out of the remark} -setup {
     set ::box {}
     initCounter
     .loghist.box delete 0 end
