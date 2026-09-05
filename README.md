@@ -74,6 +74,26 @@ four `windows.command` entries in `.vscode/tasks.json`. Write the path with
 escape-processed on its way to the terminal, turning `\t` into a tab and `\b`
 into a backspace, and the corrupted path then fails to launch.
 
+### Tests
+
+```
+tclsh tools/test.tcl          # everything
+tclsh tools/test.tcl pure     # only files matching "pure"
+```
+
+The suite lives in [`tests/`](tests/) and runs against the modules in `src/`
+directly, so a failure names the module that contains the fault. Each `.test`
+file runs in its own interpreter, because the ones covering the log format
+build the real Tk window and that can only be done once per process. In VS
+Code this is the **Run tests** task.
+
+Most of these are *characterisation* tests: they record what the code does
+today so that refactoring can be shown not to change it. Several therefore pin
+behaviour that is actually wrong - those tests have `-BUG` in their name and a
+comment saying what the correct behaviour would be. Fixing one means changing
+its test in the same commit, deliberately, rather than discovering later that
+the output silently drifted.
+
 ### Checking syntax without launching
 
 ```

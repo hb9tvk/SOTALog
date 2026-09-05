@@ -1,0 +1,46 @@
+# UTC entry mode: the operator types the time, and the date comes from the
+# configured activation date rather than from the clock.  This needs its own
+# file because logwindow builds a different set of widgets for it, and the
+# window can only be built once per process.
+
+set ::env(TZ) UTC
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+freezeClock 1757073930
+
+set dir [sandbox]
+startLogWindow $dir 1
+
+test filenames-from-activation-date {the log is named for the configured date, not today} -body {
+    list $::logfile $::adif
+} -result {2026-09-05_HB_BE-003.csv 2026-09-05_HB_BE-003.adi}
+
+test utc-widget-exists {entry mode adds a UTC field ahead of the call} -body {
+    winfo exists .sotalog.utc
+} -result 1
+
+test csv-uses-typed-time {the typed time and the activation date reach the CSV} -body {
+    logQso call OK1XYZ rsts 599 rstr 599 utc 0742
+    string trim [readFile [file join $dir $::logfile]]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2026,0742,7.0MHz,CW,OK1XYZ,,"RSTS:599 RSTR:599"}
+
+test adif-uses-typed-time {and the ADIF record agrees} -body {
+    string trim [readFile [file join $dir $::adif]]
+} -result {<qso_date:8:d>20260905 <time_on:4>0742 <call:6>OK1XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>599 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
+test reload-restores-band {readLog puts the band back where the last QSO was} -setup {
+    set ::box {}
+    initCounter
+    .loghist.box delete 0 end
+    set ::band 20m
+} -body {
+    readLog
+    list $::band $::qsocount(40m) [llength $::box]
+} -result {40m 1 1}
+
+# tcltest exits from cleanupTests with a zero status whatever happened, so
+# tools/test.tcl decides pass or fail by reading the summary line below.
+removeSandboxes
+cleanupTests

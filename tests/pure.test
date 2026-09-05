@@ -1,0 +1,79 @@
+# Procedures that depend on neither widgets nor the file system.
+#
+# These are characterisation tests: they record what the code does today so
+# that the refactor can be shown not to change it.  Where today's behaviour is
+# wrong, the test says so explicitly rather than quietly blessing it.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+
+test basecall-plain {a call with no suffix is its own base} -body {
+    getBasecall HB9TVK
+} -result HB9TVK
+
+test basecall-portable {the longer half of a one-slash call wins} -body {
+    list [getBasecall HB9TVK/P] [getBasecall F/HB9TVK] [getBasecall W1AW/4]
+} -result {HB9TVK HB9TVK W1AW}
+
+test basecall-equal-length {with halves of equal length the second one wins} -body {
+    getBasecall AB1CD/EF2GH
+} -result EF2GH
+
+test basecall-prefix-and-suffix {prefix/base/suffix yields the middle} -body {
+    list [getBasecall DL/HB9TVK/P] [getBasecall G/M0ABC/P]
+} -result {HB9TVK M0ABC}
+
+test basecall-two-suffixes-BUG {base/suffix/suffix picks the wrong element
+    "HB9TVK/P/QRP" should give HB9TVK, but the two-slash branch anchors on the
+    first slash and returns the suffix instead.  Pinned as-is; fixing it is a
+    separate, deliberate change.
+} -body {
+    getBasecall HB9TVK/P/QRP
+} -result P
+
+test bandswitch-up {stepping up runs through the bands and wraps} -setup {
+    set ::band 40m
+    set ::bandlist $::sotalogtest::bandlist
+} -body {
+    set seq {}
+    for {set i 0} {$i < 8} {incr i} { lappend seq $::band; bandSwitch 1 }
+    set seq
+} -result {40m 30m 20m 17m 15m 12m 10m 60m}
+
+test bandswitch-down {stepping down wraps the other way} -setup {
+    set ::band 40m
+    set ::bandlist $::sotalogtest::bandlist
+} -body {
+    set seq {}
+    for {set i 0} {$i < 8} {incr i} { lappend seq $::band; bandSwitch 0 }
+    set seq
+} -result {40m 60m 10m 12m 15m 17m 20m 30m}
+
+test initcounter {every band starts on zero} -setup {
+    set ::bandlist $::sotalogtest::bandlist
+    array unset ::qsocount
+} -body {
+    initCounter
+    set total 0
+    foreach {wl fq} $::bandlist { incr total $::qsocount($wl) }
+    list [array size ::qsocount] $total
+} -result {8 0}
+
+test filterremark-printable {printable characters are accepted} -body {
+    list [filterRemark 1 A] [filterRemark 1 " "] [filterRemark 1 ~]
+} -result {1 1 1}
+
+test filterremark-control {control characters are rejected on insert} -body {
+    filterRemark 1 \t
+} -result 0
+
+test filterremark-delete {deletions are never filtered} -body {
+    filterRemark 0 \t
+} -result 1
+
+# tcltest exits from cleanupTests with a zero status whatever happened, so
+# tools/test.tcl decides pass or fail by reading the summary line below.
+removeSandboxes
+cleanupTests

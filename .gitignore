@@ -12,6 +12,10 @@
 /*.thm.new
 /*.txt.new
 
+# Test scratch, should any run ever write it here rather than under TEMP.
+/sotalog-test-*/
+/.testtmp/
+
 # Editor and OS noise
 .DS_Store
 Thumbs.db
