@@ -12,11 +12,11 @@ namespace eval ::sotalog {
 
     # The release version, shown in the window title and used by the macOS
     # build, which reads this line out of this file.
-    variable SOTALOG_VERSION 2.2.2
+    variable SOTALOG_VERSION 2.3.0
 }
 
 # The package version keeps only major.minor, so that it goes on matching the
-# "package ifneeded SOTALog 2.2" line in SOTALog.vfs/lib/SOTALog/pkgIndex.tcl.
+# "package ifneeded SOTALog 2.3" line in SOTALog.vfs/lib/SOTALog/pkgIndex.tcl.
 package provide SOTALog \
     [join [lrange [split $::sotalog::SOTALOG_VERSION .] 0 1] .]
 
