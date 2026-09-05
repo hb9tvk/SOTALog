@@ -6,6 +6,16 @@ See http://sota.hb9tvk.org/sotalog for details.
 
 ## Layout
 
+Everything the application defines - all 54 procedures and every variable -
+lives in the `::sotalog` namespace, so nothing of ours sits in the global one
+beside Tcl's and Tk's own commands. Modules call each other by bare name;
+only Tk callbacks name things in full, because bindings, `-validatecommand`,
+`-command`, `fileevent`, `after`, `-progress`, `-variable` and `-listvariable`
+are all evaluated at the global level. `tests/callbacks.test` checks that none
+of them is left unqualified - the running tests cannot, because the test
+harness imports the namespace and an unqualified callback then resolves
+perfectly well under test while failing in the application.
+
 The application is written in Tcl/Tk and lives in [`src/`](src/), split into
 one module per concern. [`src/modules.tcl`](src/modules.tcl) lists them in load
 order and is the single source of truth for that list — both the development

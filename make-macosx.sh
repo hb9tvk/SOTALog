@@ -8,7 +8,7 @@ set -e
 cd "$(dirname "$0")"
 
 # Single source of truth: the version lives in src/init.tcl.
-VERSION=$(sed -n 's/^set SOTALOG_VERSION \(.*\)$/\1/p' src/init.tcl)
+VERSION=$(sed -n 's/^[[:space:]]*variable SOTALOG_VERSION \(.*\)$/\1/p' src/init.tcl)
 if [ -z "$VERSION" ]; then
     echo "make-macosx.sh: could not read SOTALOG_VERSION from src/init.tcl" >&2
     exit 1

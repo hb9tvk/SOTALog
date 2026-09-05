@@ -14,7 +14,7 @@ set dir [sandbox]
 startLogWindow $dir 1
 
 test filenames-from-activation-date {the log is named for the configured date, not today} -body {
-    list $::logfile $::adif
+    list $::sotalog::logfile $::sotalog::adif
 } -result {2026-09-05_HB_BE-003.csv 2026-09-05_HB_BE-003.adi}
 
 test utc-widget-exists {entry mode adds a UTC field ahead of the call} -body {
@@ -23,11 +23,11 @@ test utc-widget-exists {entry mode adds a UTC field ahead of the call} -body {
 
 test csv-uses-typed-time {the typed time and the activation date reach the CSV} -body {
     logQso call OK1XYZ rsts 599 rstr 599 utc 0742
-    string trim [readFile [file join $dir $::logfile]]
+    string trim [readFile [file join $dir $::sotalog::logfile]]
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2026,0742,7.0MHz,CW,OK1XYZ,,"RSTS:599 RSTR:599"}
 
 test adif-uses-typed-time {and the ADIF record agrees} -body {
-    string trim [readFile [file join $dir $::adif]]
+    string trim [readFile [file join $dir $::sotalog::adif]]
 } -result {<qso_date:8:d>20260905 <time_on:4>0742 <call:6>OK1XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>599 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
 
 test reload-keeps-both-reports {a QSO with reports but no remark keeps its RSTr on reload
@@ -35,22 +35,22 @@ test reload-keeps-both-reports {a QSO with reports but no remark keeps its RSTr 
     the received report, so anything logged without a remark came back with an
     empty RSTr column.
 } -setup {
-    set ::box {}
+    set ::sotalog::box {}
     initCounter
     .loghist.box delete 0 end
 } -body {
     readLog
-    string trim [lindex $::box 0]
+    string trim [lindex $::sotalog::box 0]
 } -result {0742   OK1XYZ              599       599}
 
 test reload-restores-band {readLog puts the band back where the last QSO was} -setup {
-    set ::box {}
+    set ::sotalog::box {}
     initCounter
     .loghist.box delete 0 end
-    set ::band 20m
+    set ::sotalog::band 20m
 } -body {
     readLog
-    list $::band $::qsocount(40m) [llength $::box]
+    list $::sotalog::band $::sotalog::qsocount(40m) [llength $::sotalog::box]
 } -result {40m 1 1}
 
 # tcltest exits from cleanupTests with a zero status whatever happened, so

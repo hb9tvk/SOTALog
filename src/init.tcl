@@ -1,18 +1,24 @@
-# Every procedure in the application lives in this namespace.  Tk callbacks -
-# bindings, -validatecommand, -command, fileevent, after - are evaluated at
-# the global level, so those references have to be written out in full; a bare
-# name in a binding would no longer resolve.
+# Everything the application defines - procedures and variables alike - lives
+# in this namespace, so nothing of ours sits in the global one beside Tcl's
+# and Tk's own commands.
 #
-# The variables are still global for now.  Moving them is a separate step.
+# Tk callbacks are the exception that has to be written out in full: bindings,
+# -validatecommand, -command, fileevent, after and -progress scripts are all
+# evaluated at the global level, as are -variable and -listvariable, so a bare
+# name in one of those would no longer resolve.  tests/callbacks.test checks
+# that none of them is left unqualified.
 namespace eval ::sotalog {
     namespace export *
+
+    # The release version, shown in the window title and used by the macOS
+    # build, which reads this line out of this file.
+    variable SOTALOG_VERSION 2.2.2
 }
 
-# The release version, shown in the window title and used by the macOS build.
-# package provide keeps only major.minor so that it continues to match the
+# The package version keeps only major.minor, so that it goes on matching the
 # "package ifneeded SOTALog 2.2" line in SOTALog.vfs/lib/SOTALog/pkgIndex.tcl.
-set SOTALOG_VERSION 2.2.2
-package provide SOTALog [join [lrange [split $SOTALOG_VERSION .] 0 1] .]
+package provide SOTALog \
+    [join [lrange [split $::sotalog::SOTALOG_VERSION .] 0 1] .]
 
 package require Tk
 package require http
@@ -94,20 +100,20 @@ proc ::sotalog::fitToScreen {sw sh} {
 }
 
 proc ::sotalog::Show.Modal {win onclose} {
-    set ::Modal.Result {}
+    set ::sotalog::modalResult {}
     array set options [list -onclose {} -destroy 0 -onclose $onclose ]
     wm transient $win .
-    wm protocol $win WM_DELETE_WINDOW [list catch $options(-onclose) ::Modal.Result]
+    wm protocol $win WM_DELETE_WINDOW [list catch $options(-onclose) ::sotalog::modalResult]
     set x [expr {([winfo width  .] - [winfo reqwidth  $win]) / 2 + [winfo rootx .]} - 150]
     set y [expr {([winfo height .] - [winfo reqheight $win]) / 2 + [winfo rooty .]} - 20]
     wm geometry $win +$x+$y
     raise $win
     focus $win
     grab $win
-    tkwait variable ::Modal.Result
+    tkwait variable ::sotalog::modalResult
     grab release $win
     if {$options(-destroy)} {destroy $win}
-    return ${::Modal.Result}
+    return ${::sotalog::modalResult}
 }
 
 # names.txt and sotacalls.txt are hand-maintained ASCII, but say so rather
@@ -116,7 +122,8 @@ proc ::sotalog::Show.Modal {win onclose} {
 # the current contents byte for byte identical.
 proc ::sotalog::loadNames {} {
 
-    global names cwd
+    variable names
+    variable cwd
 
     set fh [open [file join $cwd names.txt] r]
     fconfigure $fh -encoding utf-8
@@ -129,7 +136,8 @@ proc ::sotalog::loadNames {} {
 
 proc ::sotalog::loadSotaCalls {} {
 
-    global sotacalls cwd
+    variable sotacalls
+    variable cwd
 
     set fh [open [file join $cwd sotacalls.txt] r]
     fconfigure $fh -encoding utf-8

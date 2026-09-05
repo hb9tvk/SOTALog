@@ -91,27 +91,27 @@ proc sotalogtest::freezeClock {seconds} {
 proc sotalogtest::startLogWindow {dir {entryModeOn 0}} {
     variable bandlist
 
-    set ::cwd $dir
-    set ::myCall HB9TVK/P
-    set ::ref HB/BE-003
-    set ::s2s ""
-    set ::mode CW
-    set ::modes {CW SSB}
-    set ::entryMode $entryModeOn
-    set ::utcDate 05/09/2026
-    set ::oneKeyReport 1
-    set ::box {}
-    set ::sinfo "Alt: 3967 Pts: 10"
-    set ::bandlist $bandlist
-    array set ::w2f $bandlist
-    array set ::names {}
-    set ::sotacalls {}
+    set ::sotalog::cwd $dir
+    set ::sotalog::myCall HB9TVK/P
+    set ::sotalog::ref HB/BE-003
+    set ::sotalog::s2s ""
+    set ::sotalog::mode CW
+    set ::sotalog::modes {CW SSB}
+    set ::sotalog::entryMode $entryModeOn
+    set ::sotalog::utcDate 05/09/2026
+    set ::sotalog::oneKeyReport 1
+    set ::sotalog::box {}
+    set ::sotalog::sinfo "Alt: 3967 Pts: 10"
+    set ::sotalog::bandlist $bandlist
+    array set ::sotalog::w2f $bandlist
+    array set ::sotalog::names {}
+    set ::sotalog::sotacalls {}
 
     if {[lsearch -exact [font names] sotabig] < 0} { createFonts }
     initCounter
-    logwindow "$::ref \"Eiger\"" "$::sinfo Mode: $::mode"
+    logwindow "$::sotalog::ref \"Eiger\"" "$::sotalog::sinfo Mode: $::sotalog::mode"
     wm withdraw .
-    openLog $::ref
+    openLog $::sotalog::ref
 }
 
 # The entry widgets validate every keystroke and rewrite themselves as they
@@ -130,7 +130,7 @@ proc sotalogtest::logQso {args} {
     setEntry .sotalog.rsts $q(rsts)
     setEntry .sotalog.rstr $q(rstr)
     setEntry .sotalog.rem  $q(rem)
-    if {$::entryMode} { setEntry .sotalog.utc $q(utc) }
+    if {$::sotalog::entryMode} { setEntry .sotalog.utc $q(utc) }
     saveLog
 }
 
@@ -146,10 +146,10 @@ proc sotalogtest::readFile {path} {
 # summit list nor the startup sequence that loads it.  All three are set-like
 # arrays, keyed the way summits.thm stores them.
 proc sotalogtest::loadFakeSummitData {} {
-    array set ::assocs  {HB 1 HB0 1 OE 1 DL 1 DM 1 F 1}
-    array set ::regions {HB/BE 1 HB/VS 1 HB/JU 1 HB0/LI 1 OE/TI 1 DL/BW 1}
-    array set ::refs    {HB/BE-001 1 HB/BE-003 1 HB/BE-013 1 HB/VS-001 1 OE/TI-437 1}
-    array set ::summits {
+    array set ::sotalog::assocs  {HB 1 HB0 1 OE 1 DL 1 DM 1 F 1}
+    array set ::sotalog::regions {HB/BE 1 HB/VS 1 HB/JU 1 HB0/LI 1 OE/TI 1 DL/BW 1}
+    array set ::sotalog::refs    {HB/BE-001 1 HB/BE-003 1 HB/BE-013 1 HB/VS-001 1 OE/TI-437 1}
+    array set ::sotalog::summits {
         HB/VS-001,name Dufourspitze HB/VS-001,alt 4633 HB/VS-001,pts 10
         HB/BE-003,name Eiger        HB/BE-003,alt 3967 HB/BE-003,pts 10
     }

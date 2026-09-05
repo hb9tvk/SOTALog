@@ -120,7 +120,14 @@ proc ::sotalog::formatQsoAdif {qso} {
 
 # Gathers what is currently in the entry fields into a QSO.
 proc ::sotalog::qsoFromEntry {} {
-    global band w2f myCall s2s mode ref entryMode utcDate
+    variable band
+    variable w2f
+    variable myCall
+    variable s2s
+    variable mode
+    variable ref
+    variable entryMode
+    variable utcDate
 
     set utc [clock format [clock seconds] -gmt true -format %H%M]
     set date [clock format [clock seconds] -format %d/%m/%Y]
@@ -162,7 +169,10 @@ proc ::sotalog::readLog {} {
     # logged QSO was, so a resumed session carries on where it stopped.  Mode
     # deliberately is not restored: it stays at the session default instead of
     # following whatever the final QSO happened to use.
-    global logfile bandlist band cwd
+    variable logfile
+    variable bandlist
+    variable band
+    variable cwd
 
     set fh [open [file join $cwd $logfile] r]
     fconfigure $fh -encoding utf-8
@@ -186,7 +196,11 @@ proc ::sotalog::readLog {} {
 
 proc ::sotalog::openLog {ref} {
 
-    global logfile adif utcDate entryMode cwd
+    variable logfile
+    variable adif
+    variable utcDate
+    variable entryMode
+    variable cwd
 
     regsub / $ref _ ref
     set logfile "[clock format [clock seconds] -format %Y-%m-%d]_${ref}.csv"
@@ -206,7 +220,9 @@ proc ::sotalog::openLog {ref} {
 
 proc ::sotalog::saveLog {} {
 
-    global logfile adif cwd
+    variable logfile
+    variable adif
+    variable cwd
 
     if {[string length [.sotalog.call get]] == 0} {
         clear

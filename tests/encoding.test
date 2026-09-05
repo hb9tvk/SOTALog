@@ -42,36 +42,36 @@ test write-keeps-the-acute-accent {writeDataFile must not substitute a question 
     This is the exact byte that was being lost: 0xB4, which ISO-8859-15 cannot
     represent, so Tcl wrote 0x3F instead.
 } -setup {
-    set ::cwd [sandbox]
+    set ::sotalog::cwd [sandbox]
 } -body {
     writeDataFile summits.thm "d${::acute}Agua"
-    set bytes [fileBytes [file join $::cwd summits.thm]]
+    set bytes [fileBytes [file join $::sotalog::cwd summits.thm]]
     # string match would read "?" as a wildcard, so look for it literally.
     list [scan [string index $bytes 1] %c] [string first "?" $bytes]
 } -result {180 -1}
 
 test write-round-trips-every-byte {every ISO-8859-1 value survives a write} -setup {
-    set ::cwd [sandbox]
+    set ::sotalog::cwd [sandbox]
 } -body {
     # Every byte that can appear in the file, except the newline puts adds.
     set original ""
     for {set i 32} {$i < 256} {incr i} { append original [format %c $i] }
     writeDataFile summits.thm $original
-    set bytes [fileBytes [file join $::cwd summits.thm]]
+    set bytes [fileBytes [file join $::sotalog::cwd summits.thm]]
     set written [string range $bytes 0 end-1]  ;# drop the trailing newline
     list [string length $written] [string equal $written $original]
 } -result {224 1}
 
 test read-decodes-accents {loadSummits returns the names, not replacement characters} -setup {
-    set ::cwd [sandbox]
-    writeSummitsFile $::cwd $::summitLine
-    array unset ::summits
+    set ::sotalog::cwd [sandbox]
+    writeSummitsFile $::sotalog::cwd $::summitLine
+    array unset ::sotalog::summits
 } -body {
     loadSummits
-    list $::summits(PY1/MC-009,name) \
-         $::summits(F/AM-001,name) \
-         $::summits(OE/TI-437,name) \
-         $::summits(LA/RL-274,name)
+    list $::sotalog::summits(PY1/MC-009,name) \
+         $::sotalog::summits(F/AM-001,name) \
+         $::sotalog::summits(OE/TI-437,name) \
+         $::sotalog::summits(LA/RL-274,name)
 } -result [list "Serra do Olho d\u00b4Agua" "Barre des \u00c9crins" \
                 "Sch\u00f6nb\u00fchel" "\u00d8stre"]
 
@@ -84,28 +84,28 @@ test read-names-its-encoding {loadSummits reads ISO-8859-1, not the system encod
     macOS, and UTF-8 under Tcl 9 - where a lone 0xB4 is not valid UTF-8 and
     every accented summit name comes back as replacement characters.
 } -setup {
-    set ::cwd [sandbox]
-    set fh [open [file join $::cwd summits.thm] w]
+    set ::sotalog::cwd [sandbox]
+    set fh [open [file join $::sotalog::cwd summits.thm] w]
     fconfigure $fh -encoding iso8859-1 -translation lf
     puts $fh "X/YZ-001,name {a\u0092b}"
     puts $fh {}
     puts $fh {}
     puts $fh {}
     close $fh
-    array unset ::summits
+    array unset ::sotalog::summits
 } -body {
     loadSummits
     # 146 is 0x92 read as ISO-8859-1; cp1252 would give 8217.
-    scan [string index $::summits(X/YZ-001,name) 1] %c
+    scan [string index $::sotalog::summits(X/YZ-001,name) 1] %c
 } -result 146
 
 test full-round-trip {a name written by the updater is read back unchanged} -setup {
-    set ::cwd [sandbox]
-    array unset ::summits
+    set ::sotalog::cwd [sandbox]
+    array unset ::sotalog::summits
 } -body {
     writeDataFile summits.thm "$::summitLine\n\n\n"
     loadSummits
-    set ::summits(PY1/MC-009,name)
+    set ::sotalog::summits(PY1/MC-009,name)
 } -result "Serra do Olho d\u00b4Agua"
 
 removeSandboxes

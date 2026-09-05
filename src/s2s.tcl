@@ -29,7 +29,9 @@ proc ::sotalog::markS2sField {entry matches} {
 # Both are shown, and the field is coloured unless no entry is given - the
 # focusin branches list candidates without passing judgement on the contents.
 proc ::sotalog::s2sSuggest {arrayName pattern strip {entry ""}} {
-    upvar #0 $arrayName candidates
+    # upvar #0 with a bare name would reach the global namespace; these arrays
+    # are namespace variables, so the name has to be qualified.
+    upvar #0 ::sotalog::$arrayName candidates
 
     set matches [lsort [array names candidates -glob $pattern]]
     if {$strip ne ""} { regsub -all $strip $matches "" matches }
@@ -39,7 +41,8 @@ proc ::sotalog::s2sSuggest {arrayName pattern strip {entry ""}} {
 }
 
 proc ::sotalog::saveS2s {} {
-    global s2s summits
+    variable s2s
+    variable summits
 
     if {[string length [.s2s.num get]]} {
         set s2s [.s2s.ass get]/[.s2s.reg get]-[format %03d [string trimleft [.s2s.num get] 0]]
@@ -82,7 +85,7 @@ proc ::sotalog::validateNum {validation action new vaction newval} {
 }
 
 proc ::sotalog::validateReg {validation action new vaction newval} {
-    global regions
+    variable regions
 
     set curass [.s2s.ass get]
 
@@ -121,7 +124,7 @@ proc ::sotalog::validateReg {validation action new vaction newval} {
 }
 
 proc ::sotalog::validateAss {validation action new vaction newval} {
-    global assocs
+    variable assocs
 
     if {$vaction eq "key" && $action == 1} {
         if {$new eq ","} { return 0 }
@@ -167,14 +170,15 @@ proc ::sotalog::validateAss {validation action new vaction newval} {
 # Builds the dialog and its bindings.  Kept separate from s2sDialog so that
 # the entry validation can be exercised without entering the modal loop.
 proc ::sotalog::s2sWidgets {} {
-    global assocs s2s
+    variable assocs
+    variable s2s
 
     toplevel .s2s
     wm title .s2s "S2S entry"
 
-    bind .s2s <Return> {set ::Modal.Result 1}
-    bind .s2s <Escape> {set ::Modal.Result 0}
-    bind .s2s <comma>  {set ::Modal.Result 0}
+    bind .s2s <Return> {set ::sotalog::modalResult 1}
+    bind .s2s <Escape> {set ::sotalog::modalResult 0}
+    bind .s2s <comma>  {set ::sotalog::modalResult 0}
     bind .s2s <Home> { focus [tk_focusPrev [focus]]}
     bind .s2s <End> { focus [tk_focusNext [focus]]}
 
@@ -211,7 +215,7 @@ proc ::sotalog::s2sDialog {} {
     s2sWidgets
 
     focus .s2s.ass
-    if {[Show.Modal .s2s {set ::Modal.Result 0}]} {
+    if {[Show.Modal .s2s {set ::sotalog::modalResult 0}]} {
         saveS2s
     }
     destroy .s2s

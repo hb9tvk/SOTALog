@@ -59,52 +59,52 @@ test parse-truncated {a file cut off mid-write yields what survived} -body {
 } -result {myCall HB9TVK/P}
 
 test load-normal {a valid file reaches the globals} -setup {
-    set ::cwd [sandbox]
-    writeConfig $::cwd $valid
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd $valid
 } -body {
     loadConfig
-    list $::myCall $::oneKeyReport $::entryMode $::utcDate
+    list $::sotalog::myCall $::sotalog::oneKeyReport $::sotalog::entryMode $::sotalog::utcDate
 } -result {HB9TVK/P 1 1 05/09/2026}
 
 test load-spaces-does-not-crash {a date with spaces loads instead of killing startup
     This is the case that used to stop the application: eval saw
     "set utcDate 5 September 2026" as a set with too many arguments.
 } -setup {
-    set ::cwd [sandbox]
-    writeConfig $::cwd "set myCall HB9TVK/P\nset entryMode 1\nset utcDate 5 September 2026\n"
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set myCall HB9TVK/P\nset entryMode 1\nset utcDate 5 September 2026\n"
 } -body {
     loadConfig
-    list $::myCall $::utcDate
+    list $::sotalog::myCall $::sotalog::utcDate
 } -result {HB9TVK/P {5 September 2026}}
 
 test load-bracket-does-not-execute {a bracketed value is not run} -setup {
-    set ::cwd [sandbox]
+    set ::sotalog::cwd [sandbox]
     set ::executed 0
-    writeConfig $::cwd "set myCall HB9TVK/P\nset utcDate \[set ::executed 1\]\n"
+    writeConfig $::sotalog::cwd "set myCall HB9TVK/P\nset utcDate \[set ::executed 1\]\n"
 } -body {
     loadConfig
-    list $::executed $::utcDate
+    list $::executed $::sotalog::utcDate
 } -result {0 {[set ::executed 1]}}
 
 test load-truncated-keeps-defaults {a half-written file falls back rather than failing} -setup {
-    set ::cwd [sandbox]
-    writeConfig $::cwd "set myCall HB9XYZ\nset oneKeyRep"
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set myCall HB9XYZ\nset oneKeyRep"
 } -body {
     loadConfig
     # myCall survived; everything after the truncation keeps its default.
-    list $::myCall $::oneKeyReport $::entryMode $::utcDate
+    list $::sotalog::myCall $::sotalog::oneKeyReport $::sotalog::entryMode $::sotalog::utcDate
 } -result {HB9XYZ 1 0 05/09/2025}
 
 test load-missing-settings-keep-defaults {settings absent from the file keep their defaults} -setup {
-    set ::cwd [sandbox]
-    writeConfig $::cwd "set entryMode 1\n"
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set entryMode 1\n"
 } -body {
     loadConfig
-    list $::myCall $::oneKeyReport $::entryMode
+    list $::sotalog::myCall $::sotalog::oneKeyReport $::sotalog::entryMode
 } -result {HB9TVK/P 1 1}
 
 test load-missing-file-opens-dialog {a first run with no file asks for one} -setup {
-    set ::cwd [sandbox]
+    set ::sotalog::cwd [sandbox]
     # loadConfig calls configDialog from inside ::sotalog, so the stub has to
     # replace the real command there; replacing the imported global alias
     # would leave the namespace resolving to the real dialog.
@@ -120,46 +120,46 @@ test load-missing-file-opens-dialog {a first run with no file asks for one} -set
 } -result 1
 
 test save-writes-every-setting {saving produces the four lines, in order} -setup {
-    set ::cwd [sandbox]
-    set ::myCall HB9TVK/P
-    set ::oneKeyReport 1
-    set ::entryMode 1
-    set ::utcDate 05/09/2026
+    set ::sotalog::cwd [sandbox]
+    set ::sotalog::myCall HB9TVK/P
+    set ::sotalog::oneKeyReport 1
+    set ::sotalog::entryMode 1
+    set ::sotalog::utcDate 05/09/2026
     setEntry .cfg.call HB9TVK/P
     setEntry .cfg.utcDate 05/09/2026
 } -body {
     saveConfig
-    string trim [readFile [file join $::cwd sotalog.conf]]
+    string trim [readFile [file join $::sotalog::cwd sotalog.conf]]
 } -result "set myCall HB9TVK/P
 set oneKeyReport 1
 set entryMode 1
 set utcDate 05/09/2026"
 
 test save-leaves-no-temp-file {the temporary file used for the atomic write is gone} -setup {
-    set ::cwd [sandbox]
+    set ::sotalog::cwd [sandbox]
     setEntry .cfg.call HB9TVK/P
     setEntry .cfg.utcDate 05/09/2026
 } -body {
     saveConfig
-    lsort [lmap f [glob -nocomplain -directory $::cwd *] {file tail $f}]
+    lsort [lmap f [glob -nocomplain -directory $::sotalog::cwd *] {file tail $f}]
 } -result sotalog.conf
 
 test roundtrip {what saveConfig writes, loadConfig reads back} -setup {
-    set ::cwd [sandbox]
-    set ::myCall HB9XYZ/P
-    set ::oneKeyReport 0
-    set ::entryMode 1
-    set ::utcDate 24/12/2026
+    set ::sotalog::cwd [sandbox]
+    set ::sotalog::myCall HB9XYZ/P
+    set ::sotalog::oneKeyReport 0
+    set ::sotalog::entryMode 1
+    set ::sotalog::utcDate 24/12/2026
     setEntry .cfg.call HB9XYZ/P
     setEntry .cfg.utcDate 24/12/2026
 } -body {
     saveConfig
-    set ::myCall ""
-    set ::oneKeyReport 9
-    set ::entryMode 9
-    set ::utcDate ""
+    set ::sotalog::myCall ""
+    set ::sotalog::oneKeyReport 9
+    set ::sotalog::entryMode 9
+    set ::sotalog::utcDate ""
     loadConfig
-    list $::myCall $::oneKeyReport $::entryMode $::utcDate
+    list $::sotalog::myCall $::sotalog::oneKeyReport $::sotalog::entryMode $::sotalog::utcDate
 } -result {HB9XYZ/P 0 1 24/12/2026}
 
 removeSandboxes

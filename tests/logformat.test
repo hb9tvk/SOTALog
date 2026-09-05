@@ -18,82 +18,82 @@ set dir [sandbox]
 startLogWindow $dir 0
 
 test filenames {the log file is named for the date and the summit reference} -body {
-    list $::logfile $::adif
+    list $::sotalog::logfile $::sotalog::adif
 } -result {2025-09-05_HB_BE-003.csv 2025-09-05_HB_BE-003.adi}
 
 test csv-plain {a QSO with both reports and a remark} -body {
     logQso call HB9XYZ rsts 599 rstr 579 rem "nice sig"
-    string trim [readFile [file join $dir $::logfile]]
+    string trim [readFile [file join $dir $::sotalog::logfile]]
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579 nice sig"}
 
 test adif-plain {the matching ADIF record} -body {
-    lindex [split [string trim [readFile [file join $dir $::adif]]] \n] 0
+    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 0
 } -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>579 <station_callsign:8>HB9TVK/P <comment_intl:31>SOTA HB/BE-003 Remark: nice sig <eor>}
 
 test csv-summit-to-summit {an S2S contact carries the far summit in its own column and in the remark} -setup {
-    set ::s2s HB/VS-001
+    set ::sotalog::s2s HB/VS-001
 } -cleanup {
-    set ::s2s ""
+    set ::sotalog::s2s ""
 } -body {
     logQso call DL1ABC rsts 559 rstr 339
-    lindex [split [string trim [readFile [file join $dir $::logfile]]] \n] 1
+    lindex [split [string trim [readFile [file join $dir $::sotalog::logfile]]] \n] 1
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,DL1ABC,HB/VS-001,"RSTS:559 RSTR:339 S2S:HB/VS-001"}
 
 test adif-summit-to-summit {ADIF puts the S2S in the comment instead} -body {
-    lindex [split [string trim [readFile [file join $dir $::adif]]] \n] 1
+    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 1
 } -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>DL1ABC <band:3>40M <mode:2>CW <rst_sent:3>559 <rst_rcvd:3>339 <station_callsign:8>HB9TVK/P <comment_intl:33>SOTA HB/BE-003 S2S with HB/VS-001 <eor>}
 
 test csv-bare {a QSO with no reports and no remark still logs the call} -body {
     logQso call G0XYZ
-    lindex [split [string trim [readFile [file join $dir $::logfile]]] \n] 2
+    lindex [split [string trim [readFile [file join $dir $::sotalog::logfile]]] \n] 2
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,G0XYZ,,""}
 
 test adif-empty-rst {a QSO with no reports omits the report fields entirely} -body {
-    lindex [split [string trim [readFile [file join $dir $::adif]]] \n] 2
+    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 2
 } -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:5>G0XYZ <band:3>40M <mode:2>CW <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
 
 
 test empty-call-is-ignored {pressing Return on an empty call logs nothing} -body {
-    set before [llength [split [string trim [readFile [file join $dir $::logfile]]] \n]]
+    set before [llength [split [string trim [readFile [file join $dir $::sotalog::logfile]]] \n]]
     logQso call ""
-    set after [llength [split [string trim [readFile [file join $dir $::logfile]]] \n]]
+    set after [llength [split [string trim [readFile [file join $dir $::sotalog::logfile]]] \n]]
     list $before $after
 } -result {3 3}
 
 test display-rows {the on-screen log shows newest first, S2S replacing the remark} -body {
-    set ::box
+    set ::sotalog::box
 } -result [list \
     "1205   G0XYZ                                                       " \
     "1205   DL1ABC              559       339       HB/VS-001           " \
     "1205   HB9XYZ              599       579       nice sig            "]
 
 test qso-counter {all three QSOs are counted against 40m} -body {
-    set ::qsocount(40m)
+    set ::sotalog::qsocount(40m)
 } -result 3
 
 test reload-preserves-rows {reopening the log restores every QSO} -setup {
-    set ::box {}
+    set ::sotalog::box {}
     initCounter
     .loghist.box delete 0 end
 } -body {
     readLog
-    list [llength $::box] $::qsocount(40m)
+    list [llength $::sotalog::box] $::sotalog::qsocount(40m)
 } -result {3 3}
 
 test reload-parses-remark-column {reloading splits the reports back out of the remark} -setup {
-    set ::box {}
+    set ::sotalog::box {}
     initCounter
     .loghist.box delete 0 end
 } -body {
     readLog
-    # $::box is newest-first; row 1 is the S2S QSO whose remark follows RSTR.
-    list [string trim [lindex $::box 2]] [string trim [lindex $::box 1]]
+    # $::sotalog::box is newest-first; row 1 is the S2S QSO whose remark follows RSTR.
+    list [string trim [lindex $::sotalog::box 2]] [string trim [lindex $::sotalog::box 1]]
 } -result {{1205   HB9XYZ              599       579       nice sig} {1205   DL1ABC              559       339       S2S:HB/VS-001}}
 
 # Logged last, because it adds a fourth QSO and the tests above count three.
 test adif-short-report {a two-character SSB report declares a length of two} -body {
     logQso call PA0ABC rsts 59 rstr 57
-    lindex [split [string trim [readFile [file join $dir $::adif]]] \n] 3
+    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 3
 } -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>PA0ABC <band:3>40M <mode:2>CW <rst_sent:2>59 <rst_rcvd:2>57 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
 
 

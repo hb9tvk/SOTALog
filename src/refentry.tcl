@@ -34,7 +34,13 @@ proc ::sotalog::processRef {validation action new vaction} {
 
 proc ::sotalog::saveRef {} {
 
-    global enteredRef ref summits refs assocs regions cwd
+    variable enteredRef
+    variable ref
+    variable summits
+    variable refs
+    variable assocs
+    variable regions
+    variable cwd
     
     set ref [.ref.ref get]
 
@@ -67,7 +73,11 @@ proc ::sotalog::saveRef {} {
 # ISO-8859-1 is also the only encoding whose 256 values map one-to-one onto
 # bytes, so nothing can be substituted or lost on the way in or out.
 proc ::sotalog::loadSummits {} {
-    global summits refs assocs regions cwd
+    variable summits
+    variable refs
+    variable assocs
+    variable regions
+    variable cwd
 
     set fh [open [file join $cwd summits.thm] r]
     fconfigure $fh -encoding iso8859-1

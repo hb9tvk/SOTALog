@@ -36,7 +36,10 @@ proc ::sotalog::processUTC {validation action new vaction newval} {
 
 proc ::sotalog::processCall {validation action new vaction newval} {
 
-    global names sinfo sotacalls mode
+    variable names
+    variable sinfo
+    variable sotacalls
+    variable mode
 
     if {$vaction == "key" && $action == 1} {
         if {$new == "."} { set new "/" }
@@ -71,7 +74,8 @@ proc ::sotalog::processCall {validation action new vaction newval} {
 }
 
 proc ::sotalog::processRSTs {validation action new vaction} {
-    global oneKeyReport mode
+    variable oneKeyReport
+    variable mode
     if {$vaction == "key" && $action == 1} {
         after idle [list .sotalog.rsts configure -validate $validation]
         if {$new == " "} {
@@ -104,7 +108,8 @@ proc ::sotalog::processRSTs {validation action new vaction} {
 }
 
 proc ::sotalog::processRSTr {validation action new vaction} {
-    global oneKeyReport mode
+    variable oneKeyReport
+    variable mode
     if {$vaction == "key" && $action == 1} {
         after idle [list .sotalog.rstr configure -validate $validation]
         if {$new == " "} {

@@ -91,5 +91,48 @@ test procs-were-found {the scan found the procedures it is checking against} -bo
     expr {[llength $procNames] > 40}
 } -result 1
 
+test variable-options-are-qualified {-variable and friends name a qualified variable
+    Tk resolves -variable, -listvariable and -textvariable in the global
+    namespace, exactly like a binding script, so a bare name there would bind
+    the widget to a global that nothing else ever reads.
+} -body {
+    set bare {}
+    foreach path [lsort [glob [file join $srcdir *.tcl]]] {
+        set fh [open $path r]
+        set number 0
+        foreach line [split [read $fh] \n] {
+            incr number
+            if {[string index [string trim $line] 0] eq "#"} { continue }
+            # Scanned as words rather than by regular expression: building a
+            # pattern around the option name needs backslash gymnastics that
+            # are easy to get quietly wrong.
+            set words [regexp -all -inline {\S+} $line]
+            foreach option {-variable -listvariable -textvariable} {
+                set i [lsearch -exact $words $option]
+                if {$i < 0} { continue }
+                set name [lindex $words [expr {$i + 1}]]
+                if {![string match "::*" $name] && ![string match {$*} $name]} {
+                    lappend bare "[file tail $path]:$number: $option $name"
+                }
+            }
+        }
+        close $fh
+    }
+    set bare
+} -result {}
+
+test nothing-leaks-into-the-global-namespace {no application variable sits in ::
+    Every variable the application owns should be ::sotalog::something.  This
+    compares what the namespace holds against the global namespace, so it
+    keeps working as variables are added.
+} -body {
+    set leaked {}
+    foreach qualified [info vars ::sotalog::*] {
+        set short [namespace tail $qualified]
+        if {[info exists ::$short]} { lappend leaked $short }
+    }
+    lsort $leaked
+} -result {}
+
 removeSandboxes
 cleanupTests

@@ -27,8 +27,8 @@ puts $fh {}
 puts $fh {}
 puts $fh {}
 close $fh
-set ::cwd $dir
-set ::enteredRef 0
+set ::sotalog::cwd $dir
+set ::sotalog::enteredRef 0
 
 if {[lsearch -exact [font names] sotabig] < 0} { createFonts }
 enterRef
@@ -37,7 +37,7 @@ test ref-entry-return-binding {Return in the ref dialog accepts the summit} -bod
     .ref.ref configure -validate none
     .ref.ref insert 0 "HB/BE-003"
     event generate . <Return>
-    list $::enteredRef $::ref [winfo exists .ref]
+    list $::sotalog::enteredRef $::sotalog::ref [winfo exists .ref]
 } -result {1 HB/BE-003 0}
 
 # The ref dialog is gone; bring up the log window as main.tcl would.
@@ -46,30 +46,30 @@ wm deiconify .
 update
 
 test band-switch-bindings {Page Down and Page Up move through the bands} -setup {
-    set ::band 40m
+    set ::sotalog::band 40m
 } -body {
     event generate . <Next>
-    set up $::band
+    set up $::sotalog::band
     event generate . <Prior>
-    set back $::band
+    set back $::sotalog::band
     event generate . <Prior>
-    list $up $back $::band
+    list $up $back $::sotalog::band
 } -result {30m 40m 60m}
 
 test mode-toggle-binding {F8 cycles the mode} -setup {
-    set ::band 40m
-    set ::mode CW
+    set ::sotalog::band 40m
+    set ::sotalog::mode CW
 } -body {
     event generate . <F8>
-    set first $::mode
+    set first $::sotalog::mode
     event generate . <F8>
-    list $first $::mode
+    list $first $::sotalog::mode
 } -result {SSB CW}
 
 test return-logs-the-qso {Return in the log window saves and clears} -setup {
-    set ::band 40m
-    set ::mode CW
-    set ::box {}
+    set ::sotalog::band 40m
+    set ::sotalog::mode CW
+    set ::sotalog::box {}
     initCounter
     .loghist.box delete 0 end
     setEntry .sotalog.call HB9XYZ
@@ -79,8 +79,8 @@ test return-logs-the-qso {Return in the log window saves and clears} -setup {
 } -body {
     event generate . <Return>
     update idletasks
-    list [llength $::box] $::qsocount(40m) [.sotalog.call get] \
-        [string trim [readFile [file join $dir $::logfile]]]
+    list [llength $::sotalog::box] $::sotalog::qsocount(40m) [.sotalog.call get] \
+        [string trim [readFile [file join $dir $::sotalog::logfile]]]
 } -result {1 1 {} {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579"}}
 
 test escape-clears-the-fields {Escape abandons what has been typed} -setup {

@@ -1,7 +1,9 @@
 
 # The settings sotalog.conf may carry, in the order they are written.
 # Anything else in the file is ignored.
-set configSettings {myCall oneKeyReport entryMode utcDate}
+namespace eval ::sotalog {
+    set configSettings {myCall oneKeyReport entryMode utcDate}
+}
 
 # Reads "set <name> <value>" lines and returns the settings it recognised.
 #
@@ -15,7 +17,7 @@ set configSettings {myCall oneKeyReport entryMode utcDate}
 # The value is taken verbatim to the end of the line, so nothing inside it can
 # change how the rest of the line is read.
 proc ::sotalog::parseConfig {text} {
-    global configSettings
+    variable configSettings
 
     set settings [dict create]
     set lineNumber 0
@@ -41,7 +43,12 @@ proc ::sotalog::parseConfig {text} {
 
 proc ::sotalog::saveConfig {} {
 
-    global myCall oneKeyReport entryMode utcDate cwd configSettings
+    variable myCall
+    variable oneKeyReport
+    variable entryMode
+    variable utcDate
+    variable cwd
+    variable configSettings
 
     if {[string length [.cfg.call get]]} {
         set myCall [.cfg.call get]
@@ -70,7 +77,11 @@ proc ::sotalog::saveConfig {} {
 
 proc ::sotalog::loadConfig {} {
 
-    global myCall oneKeyReport entryMode cwd utcDate
+    variable myCall
+    variable oneKeyReport
+    variable entryMode
+    variable cwd
+    variable utcDate
 
     set myCall HB9TVK/P
     set oneKeyReport 1
@@ -99,13 +110,17 @@ proc ::sotalog::loadConfig {} {
 
 proc ::sotalog::configDialog {} {
 
-    global myCall oneKeyReport entryMode updated utcDate
+    variable myCall
+    variable oneKeyReport
+    variable entryMode
+    variable updated
+    variable utcDate
    
     toplevel .cfg 
     wm title .cfg "Configuration"
     
-    set ok {set ::Modal.Result 1}
-    set cancel {set ::Modal.Result 0}
+    set ok {set ::sotalog::modalResult 1}
+    set cancel {set ::sotalog::modalResult 0}
     
     set oldEmo $entryMode
     set updated 0
@@ -118,7 +133,7 @@ proc ::sotalog::configDialog {} {
     .cfg.call insert 0 $myCall
     
     label .cfg.okrprtLabel -text "One-Key rprt:" -font sotasmall
-    checkbutton .cfg.okrprt -variable oneKeyReport 
+    checkbutton .cfg.okrprt -variable ::sotalog::oneKeyReport 
     if {$oneKeyReport} {
         .cfg.okrprt select
     } else {
@@ -126,8 +141,8 @@ proc ::sotalog::configDialog {} {
     }
     
     label .cfg.entrymodeLabel -text "UTC Entry mode:" -font sotasmall
-    checkbutton .cfg.entrymode -variable entryMode -command {
-	    if {$entryMode} {
+    checkbutton .cfg.entrymode -variable ::sotalog::entryMode -command {
+	    if {$::sotalog::entryMode} {
 		.cfg.utcDate configure -state normal
 	    } else {
 		.cfg.utcDate configure -state disabled

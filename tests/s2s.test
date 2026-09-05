@@ -11,7 +11,7 @@ namespace import ::sotalogtest::*
 loadModules
 loadFakeSummitData
 
-set ::s2s ""
+set ::sotalog::s2s ""
 startS2sDialog
 
 test initial-suggestions {the dialog opens listing every association} -body {
@@ -130,7 +130,7 @@ test save-builds-reference {the three fields become a padded summit reference} -
     setEntry .s2s.num 1
 } -body {
     saveS2s
-    list $::s2s [.sotalog.s2s cget -text]
+    list $::sotalog::s2s [.sotalog.s2s cget -text]
 } -result {HB/VS-001 {S2S: HB/VS-001 Dufourspitze / 10 Pts}}
 
 test save-clears-when-empty {clearing the number clears the summit-to-summit} -setup {
@@ -139,7 +139,7 @@ test save-clears-when-empty {clearing the number clears the summit-to-summit} -s
     setEntry .s2s.num ""
 } -body {
     saveS2s
-    list $::s2s [.sotalog.s2s cget -text]
+    list $::sotalog::s2s [.sotalog.s2s cget -text]
 } -result {{} {}}
 
 test save-unknown-summit {a well-formed reference that is not in the data is still kept} -setup {
@@ -148,7 +148,7 @@ test save-unknown-summit {a well-formed reference that is not in the data is sti
     setEntry .s2s.num 999
 } -body {
     saveS2s
-    set ::s2s
+    set ::sotalog::s2s
 } -result HB/BE-999
 
 # The modal path itself: everything above drives the validators directly, so
@@ -158,24 +158,24 @@ test save-unknown-summit {a well-formed reference that is not in the data is sti
 
 test dialog-accept {accepting the dialog saves the reference and closes it} -setup {
     destroy .s2s
-    set ::s2s ""
+    set ::sotalog::s2s ""
 } -body {
     after 200 {
         .s2s.ass configure -validate none; .s2s.ass insert 0 HB
         .s2s.reg configure -validate none; .s2s.reg insert 0 VS
         .s2s.num configure -validate none; .s2s.num insert 0 1
-        set ::Modal.Result 1
+        set ::sotalog::modalResult 1
     }
     s2sDialog
-    list $::s2s [.sotalog.s2s cget -text] [winfo exists .s2s]
+    list $::sotalog::s2s [.sotalog.s2s cget -text] [winfo exists .s2s]
 } -result {HB/VS-001 {S2S: HB/VS-001 Dufourspitze / 10 Pts} 0}
 
 test dialog-cancel {cancelling leaves the reference alone and closes it} -setup {
-    set ::s2s HB/VS-001
+    set ::sotalog::s2s HB/VS-001
 } -body {
-    after 200 { set ::Modal.Result 0 }
+    after 200 { set ::sotalog::modalResult 0 }
     s2sDialog
-    list $::s2s [winfo exists .s2s]
+    list $::sotalog::s2s [winfo exists .s2s]
 } -result {HB/VS-001 0}
 
 removeSandboxes

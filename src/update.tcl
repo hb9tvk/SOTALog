@@ -8,30 +8,32 @@
 # replace anything, and the write goes through a temporary file so an
 # interrupted transfer cannot leave a half-written file behind.
 
-set updateBaseUrl http://sota.hb9tvk.org/sotalog
+namespace eval ::sotalog {
+    set updateBaseUrl http://sota.hb9tvk.org/sotalog
 
-# Smallest payload we are willing to believe for each file, in bytes.
-array set updateMinBytes {
-    summits.thm   1000000
-    sotacalls.txt 10000
-}
+    # Smallest payload we are willing to believe for each file, in bytes.
+    array set updateMinBytes {
+        summits.thm   1000000
+        sotacalls.txt 10000
+    }
 
-# Encoding each downloaded file is written in.
-#
-# summits.thm is ISO-8859-1 and must stay that way.  It used to be written as
-# ISO-8859-15, which differs from ISO-8859-1 in eight positions: 0xB4 is an
-# acute accent in one and a Z-caron in the other.  Tcl has no way to write an
-# acute accent in ISO-8859-15, so it substituted a question mark, and every
-# update quietly corrupted the 22 summit names that use one: "Serra do Olho
-# d?Agua", where the source data has an acute accent.  ISO-8859-1 is the only
-# encoding whose 256 values map one-to-one onto bytes, so the file now round
-# trips exactly.
-#
-# The callsign list is plain ASCII; UTF-8 matches the log files and leaves it
-# byte for byte the same.
-array set updateEncoding {
-    summits.thm   iso8859-1
-    sotacalls.txt utf-8
+    # Encoding each downloaded file is written in.
+    #
+    # summits.thm is ISO-8859-1 and must stay that way.  It used to be written as
+    # ISO-8859-15, which differs from ISO-8859-1 in eight positions: 0xB4 is an
+    # acute accent in one and a Z-caron in the other.  Tcl has no way to write an
+    # acute accent in ISO-8859-15, so it substituted a question mark, and every
+    # update quietly corrupted the 22 summit names that use one: "Serra do Olho
+    # d?Agua", where the source data has an acute accent.  ISO-8859-1 is the only
+    # encoding whose 256 values map one-to-one onto bytes, so the file now round
+    # trips exactly.
+    #
+    # The callsign list is plain ASCII; UTF-8 matches the log files and leaves it
+    # byte for byte the same.
+    array set updateEncoding {
+        summits.thm   iso8859-1
+        sotacalls.txt utf-8
+    }
 }
 
 proc ::sotalog::updateProgress {token total current} {
@@ -45,7 +47,10 @@ proc ::sotalog::updateProgress {token total current} {
 # smaller than both a fixed floor and half of whatever we already hold.
 # Returns an error message, or the empty string on success.
 proc ::sotalog::updateDataFile {name} {
-    global cwd updateBaseUrl updateMinBytes updateEncoding
+    variable cwd
+    variable updateBaseUrl
+    variable updateMinBytes
+    variable updateEncoding
 
     set target [file join $cwd $name]
 
@@ -78,7 +83,8 @@ proc ::sotalog::updateDataFile {name} {
 # temporary name so an interrupted write cannot leave a partial file behind.
 # Returns an error message, or the empty string on success.
 proc ::sotalog::writeDataFile {name data} {
-    global cwd updateEncoding
+    variable cwd
+    variable updateEncoding
 
     set target [file join $cwd $name]
     set tmp $target.new
@@ -100,7 +106,7 @@ proc ::sotalog::writeDataFile {name data} {
 
 proc ::sotalog::updateCallsAndSummits {} {
 
-    global updated
+    variable updated
 
     set controls {.cfg.ok .cfg.cancel .cfg.update .cfg.call .cfg.okrprt}
     foreach c $controls { $c configure -state disabled }

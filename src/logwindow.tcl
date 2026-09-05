@@ -1,6 +1,9 @@
 
 proc ::sotalog::clear {} {
-    global sinfo s2s mode entryMode
+    variable sinfo
+    variable s2s
+    variable mode
+    variable entryMode
     .sotalog.call delete 0 end
     .sotalog.rsts delete 0 end
     .sotalog.rstr delete 0 end
@@ -18,7 +21,8 @@ proc ::sotalog::clear {} {
 }
 
 proc ::sotalog::initCounter {} {
-    global qsocount bandlist
+    variable qsocount
+    variable bandlist
 
     foreach {wl fq} $bandlist {
         set qsocount($wl) 0
@@ -26,7 +30,9 @@ proc ::sotalog::initCounter {} {
 }
 
 proc ::sotalog::modeToggle {} {
-    global mode modes sinfo
+    variable mode
+    variable modes
+    variable sinfo
     set pos [lsearch -exact $modes $mode]
     incr pos
     if {$pos == [llength $modes]} { set pos 0}
@@ -35,7 +41,8 @@ proc ::sotalog::modeToggle {} {
 }
 
 proc ::sotalog::bandSwitch {up} {
-    global band bandlist
+    variable band
+    variable bandlist
 
     set pos [lsearch -exact $bandlist $band]
     if {$up && $pos == [expr [llength $bandlist] - 2]} {
@@ -54,7 +61,7 @@ proc ::sotalog::bandSwitch {up} {
 
 proc ::sotalog::updateSuggestions {part} {
 
-    global sotacalls
+    variable sotacalls
 
     set suggest [lsearch -all -glob -inline $sotacalls "*${part}*"]
     .suggest.txt configure -state normal
@@ -78,7 +85,10 @@ proc ::sotalog::pickSuggestion {x y} {
 
 proc ::sotalog::insertLog {utc call rsts rstr rem} {
 
-    global box band qsocount s2s
+    variable box
+    variable band
+    variable qsocount
+    variable s2s
     
     if {[string length $s2s]} {
         set rem $s2s
@@ -102,9 +112,15 @@ proc ::sotalog::insertLog {utc call rsts rstr rem} {
 
 proc ::sotalog::logwindow {ref info} {
 
-    global band box qsocount bandlist tcl_platform mode entryMode
+    variable band
+    variable box
+    variable qsocount
+    variable bandlist
+    variable mode
+    variable entryMode
+    global tcl_platform
 
-    wm title . "SOTALog v$::SOTALOG_VERSION by HB9TVK"
+    wm title . "SOTALog v$::sotalog::SOTALOG_VERSION by HB9TVK"
     # Position only - the size is worked out from the finished layout at the
     # end of this procedure.
     wm geometry . +0+0
@@ -166,7 +182,7 @@ proc ::sotalog::logwindow {ref info} {
     frame .bandmap
     set i 0
     foreach {wl fq} $bandlist {
-        radiobutton .bandmap.w$wl -text "$wl" -variable band -value "$wl" -font sotamicro \
+        radiobutton .bandmap.w$wl -text "$wl" -variable ::sotalog::band -value "$wl" -font sotamicro \
             -takefocus 0 -selectcolor yellow -indicatoron 0 -pady -2
     	label .bandmap.l$wl -text "($qsocount($band))" -font sotamicro
         grid .bandmap.l$wl -row $i -column 0
@@ -175,7 +191,7 @@ proc ::sotalog::logwindow {ref info} {
     }
 
     frame .loghist
-    listbox .loghist.box -width 60 -height 5 -listvariable box -selectmode single \
+    listbox .loghist.box -width 60 -height 5 -listvariable ::sotalog::box -selectmode single \
 	-font sotamono -activestyle none -takefocus 0 -yscrollcommand {.loghist.scy set}
     scrollbar .loghist.scy -command ".loghist.box yview" -orient v -takefocus 0
     grid .loghist.box -row 0 -column 0

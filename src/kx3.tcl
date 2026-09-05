@@ -1,9 +1,13 @@
-set kx3bands [list BN03\; 40m BN04\; 30m BN05\; 20m BN06\; 17m BN07\; 15m \
-    BN08\; 12m BN09\; 10m BN10\; " 6m"]
-array set kx32b $kx3bands
+namespace eval ::sotalog {
+    set kx3bands [list BN03\; 40m BN04\; 30m BN05\; 20m BN06\; 17m BN07\; 15m \
+        BN08\; 12m BN09\; 10m BN10\; " 6m"]
+    array set kx32b $kx3bands
+}
 
 proc ::sotalog::kx3band {} {
-    global serial kx32b band
+    variable serial
+    variable kx32b
+    variable band
 
     set response [read $serial 5]
     if {[info exists kx32b($response)]} {
@@ -12,7 +16,7 @@ proc ::sotalog::kx3band {} {
 }
 
 proc ::sotalog::kx3poll {} {
-    global serial
+    variable serial
 
     #puts "poll..."
     catch {
@@ -25,7 +29,8 @@ proc ::sotalog::kx3poll {} {
 }
 
 proc ::sotalog::initSerial {} {
-    global serial cwd
+    variable serial
+    variable cwd
 
     if {![file exists [file join $cwd kx3.ini]]} {
         return

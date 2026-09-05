@@ -10,16 +10,19 @@
 #   1            errors and informational messages
 #   2            everything
 
-array set logLevels {error 0 info 1 debug 2}
+namespace eval ::sotalog {
+    array set logLevels {error 0 info 1 debug 2}
 
-set logLevel 0
-if {[info exists env(SOTALOG_DEBUG)] && [string is integer -strict $env(SOTALOG_DEBUG)]} {
-    set logLevel $env(SOTALOG_DEBUG)
+    set logLevel 0
+    if {[info exists ::env(SOTALOG_DEBUG)] && [string is integer -strict $::env(SOTALOG_DEBUG)]} {
+        set logLevel $::env(SOTALOG_DEBUG)
+    }
 }
 catch {fconfigure stderr -buffering line}
 
 proc ::sotalog::logMsg {level msg} {
-    global logLevel logLevels
+    variable logLevel
+    variable logLevels
 
     if {![info exists logLevels($level)]} { set level error }
     if {$logLevels($level) > $logLevel} { return }
