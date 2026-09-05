@@ -181,3 +181,17 @@ proc sotalogtest::deleteFrom {entry command remaining} {
 proc sotalogtest::suggestions {} {
     return [string trim [.s2s.suggest get 1.0 end]]
 }
+
+# Runs a validation command the way Tk would, with re-entrancy suppressed.
+#
+# Tk disables validation while a validatecommand runs; a direct call has to do
+# the same, because these procedures insert into the widget themselves and
+# would otherwise trigger validation again and recurse.  The command and its
+# arguments vary - the entry validators take %v %d %S %V %P, the report ones
+# drop %P - so they are passed through verbatim.
+proc sotalogtest::validateKey {entry args} {
+    $entry configure -validate none
+    set result [uplevel #0 $args]
+    $entry configure -validate all
+    return $result
+}

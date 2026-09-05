@@ -1,0 +1,125 @@
+# The main window's entry fields.
+#
+# Each field validates every keystroke, rewrites itself as it goes and hands
+# focus on to the next when it has what it needs.  The one-key report is the
+# feature that makes the application quick to use on a summit: a single digit
+# becomes a full RST.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+freezeClock 1757073930
+
+set dir [sandbox]
+startLogWindow $dir 0
+array set ::names {HB9XYZ Fritz DL1ABC Hans}
+set ::sotacalls {HB9XYZ HB9ABC DL1ABC G0XYZ}
+
+test onekey-expands-every-digit {one digit becomes a full report in CW} -setup {
+    set ::mode CW
+    set ::oneKeyReport 1
+} -body {
+    set expansions {}
+    foreach d {1 2 3 4 5 6 7 8 9} {
+        setEntry .sotalog.rsts ""
+        validateKey .sotalog.rsts processRSTs all 1 $d key
+        lappend expansions [.sotalog.rsts get]
+    }
+    set expansions
+} -result {119 229 339 449 559 569 579 589 599}
+
+test onekey-off-types-through {with the one-key report off the digits are taken as typed} -setup {
+    set ::mode CW
+    set ::oneKeyReport 0
+    setEntry .sotalog.rsts ""
+} -cleanup {
+    set ::oneKeyReport 1
+} -body {
+    foreach d {5 9 9} { validateKey .sotalog.rsts processRSTs all 1 $d key }
+    .sotalog.rsts get
+} -result 599
+
+test onekey-is-cw-only {SSB reports are typed in full} -setup {
+    set ::mode SSB
+    set ::oneKeyReport 1
+    setEntry .sotalog.rsts ""
+} -cleanup {
+    set ::mode CW
+} -body {
+    validateKey .sotalog.rsts processRSTs all 1 5 key
+    .sotalog.rsts get
+} -result 5
+
+test report-rejects-non-digits {space, letters and zero are refused} -setup {
+    setEntry .sotalog.rsts ""
+} -body {
+    set codes [list [validateKey .sotalog.rsts processRSTs all 1 " " key] \
+                    [validateKey .sotalog.rsts processRSTs all 1 X key] \
+                    [validateKey .sotalog.rsts processRSTs all 1 0 key]]
+    list $codes [.sotalog.rsts get]
+} -result {{0 0 0} {}}
+
+test received-report-expands-too {the received report uses the same expansion} -setup {
+    set ::mode CW
+    set ::oneKeyReport 1
+    setEntry .sotalog.rstr ""
+} -body {
+    validateKey .sotalog.rstr processRSTr all 1 3 key
+    .sotalog.rstr get
+} -result 339
+
+test call-is-upper-cased {a call is upper-cased as it is typed} -setup {
+    setEntry .sotalog.call ""
+} -body {
+    validateKey .sotalog.call processCall all 1 h key h
+    .sotalog.call get
+} -result H
+
+test call-dot-becomes-slash {a full stop is taken as a slash, for keying on a paddle} -setup {
+    setEntry .sotalog.call H
+} -body {
+    validateKey .sotalog.call processCall all 1 . key H.
+    .sotalog.call get
+} -result H/
+
+test call-rejects-space {space leaves the field rather than entering a character} -setup {
+    setEntry .sotalog.call ""
+} -body {
+    validateKey .sotalog.call processCall all 1 " " key ""
+} -result 0
+
+test known-call-shows-the-name {a call in names.txt puts the operator's name up in blue} -setup {
+    setEntry .sotalog.call ""
+} -body {
+    foreach c {H B 9 X Y Z} { validateKey .sotalog.call processCall all 1 $c key [.sotalog.call get] }
+    list [.sotalog.call get] [.sotalog.info cget -text] [.sotalog.info cget -fg]
+} -result {HB9XYZ Fritz blue}
+
+test unknown-call-restores-summit-info {an unknown call puts the summit details back} -setup {
+    setEntry .sotalog.call ""
+} -body {
+    foreach c {Z Z 9 Z Z Z} { validateKey .sotalog.call processCall all 1 $c key [.sotalog.call get] }
+    list [.sotalog.info cget -text] [.sotalog.info cget -fg]
+} -result {{Alt: 3967 Pts: 10 Mode: CW} black}
+
+# The configuration dialog's call field validates separately.
+toplevel .cfg
+entry .cfg.call
+wm withdraw .cfg
+
+test config-call-is-upper-cased {the configured call is upper-cased too} -setup {
+    setEntry .cfg.call ""
+} -body {
+    validateKey .cfg.call validateCall all 1 h key
+    .cfg.call get
+} -result H
+
+test config-call-rejects-space {and refuses a space} -setup {
+    setEntry .cfg.call H
+} -body {
+    list [validateKey .cfg.call validateCall all 1 " " key] [.cfg.call get]
+} -result {0 H}
+
+removeSandboxes
+cleanupTests
