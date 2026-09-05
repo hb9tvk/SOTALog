@@ -1,7 +1,6 @@
 #!/bin/bash
-
-rm -f sotalog.tcl
-cd src
-cat init.tcl io.tcl config.tcl kx3.tcl refentry.tcl s2s.tcl config.tcl update.tcl validations.tcl logwindow.tcl main.tcl > ../sotalog.tcl
-cd ..
-chmod +x sotalog.tcl
+#
+# Kept for muscle memory: the build itself lives in build.tcl so that it also
+# runs on Windows without a shell.
+set -e
+exec tclsh "$(dirname "$0")/build.tcl"

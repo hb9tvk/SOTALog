@@ -1,0 +1,25 @@
+{
+    "files.associations": {
+        "*.tcl": "tcl",
+        "*.thm": "plaintext"
+    },
+    "files.eol": "\n",
+    "[tcl]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.detectIndentation": false
+    },
+    // summits.thm is a single 13 MB line - keep the editor and the search
+    // index away from it.
+    "files.exclude": {
+        "sotalog.tcl": true
+    },
+    "search.exclude": {
+        "summits.thm": true,
+        "sotacalls.txt": true,
+        "sotalog.tcl": true
+    },
+    "files.watcherExclude": {
+        "**/summits.thm": true
+    }
+}

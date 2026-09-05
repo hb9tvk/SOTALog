@@ -1,0 +1,17 @@
+# Build output: build.tcl concatenates src/ into this file, and the starkit
+# wrap turns it into the executable.  Both are generated - never edit them.
+/sotalog.tcl
+/SOTALog
+/SOTALog.exe
+/SOTALog-*.app/
+
+# Runtime files written next to the application by the user's own session.
+/sotalog.conf
+/*.csv
+/*.adi
+/*.thm.new
+/*.txt.new
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db

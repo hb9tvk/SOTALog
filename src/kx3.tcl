@@ -27,7 +27,7 @@ proc kx3poll {} {
 proc initSerial {} {
     global serial cwd
 
-    if {![file exists kx3.ini]} {
+    if {![file exists [file join $cwd kx3.ini]]} {
         return
     }
     set fh [open [file join $cwd kx3.ini] r]

@@ -1,0 +1,95 @@
+{
+    // Tcl has no debug adapter for VS Code, so there is no launch.json here.
+    // Debugging is done the way it always was - with log statements - except
+    // that the output is now visible: these tasks run the app under tclsh,
+    // which is a console binary, so puts and logMsg reach the terminal.
+    // Running it under wish would swallow all of it on Windows.
+    //
+    // Paths below use forward slashes deliberately, and script arguments are
+    // relative rather than "${workspaceFolder}/...".  A Windows backslash in
+    // a task command gets escape-processed on its way to the terminal - a tab
+    // or backspace escape appears and silently corrupts the path.
+    // Forward slashes work fine in Windows paths and have nothing to mangle.
+    // Tasks already default to running in the workspace folder, so no cwd is
+    // needed either.
+    //
+    // If Tcl lives somewhere else on this machine, change the four "windows"
+    // command paths below - forward slashes, no trailing quotes.
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run SOTALog",
+            "detail": "Start the app with logging at default verbosity",
+            "type": "process",
+            "command": "tclsh",
+            "windows": {
+                "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
+            },
+            "args": ["run.tcl"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run SOTALog (debug logging)",
+            "detail": "Same, with SOTALOG_DEBUG=2 for full trace output",
+            "type": "process",
+            "command": "tclsh",
+            "windows": {
+                "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
+            },
+            "args": ["run.tcl"],
+            "options": {
+                "env": {
+                    "SOTALOG_DEBUG": "2"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Check syntax",
+            "detail": "Parse every module without starting the GUI",
+            "type": "process",
+            "command": "tclsh",
+            "windows": {
+                "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
+            },
+            "args": ["tools/check.tcl"],
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build sotalog.tcl",
+            "detail": "Concatenate src/ into the single file the starkit wrap expects",
+            "type": "process",
+            "command": "tclsh",
+            "windows": {
+                "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
+            },
+            "args": ["build.tcl"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

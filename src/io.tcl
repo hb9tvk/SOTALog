@@ -1,5 +1,11 @@
 proc readLog {} {
-    global logfile bandlist band cwd mode
+    # Reloads an activation already in progress.  Each row is
+    #   0:"V2" 1:mycall 2:ref 3:date 4:utc 5:freq 6:mode 7:call 8:s2s 9:remark
+    # Band is left where the last logged QSO was, so a resumed session carries
+    # on where it stopped.  Mode deliberately is not restored: it stays at the
+    # session default instead of following whatever the final QSO happened to
+    # use.
+    global logfile bandlist band cwd
 
     set fh [open [file join $cwd $logfile] r]
     fconfigure $fh -encoding utf-8
@@ -10,7 +16,6 @@ proc readLog {} {
         set call [lindex $csvline 7]
         set utc [lindex $csvline 4]
         set fq [lindex $csvline 5]
-        set mode [lindex $csvline 6]
         set pos [lsearch -exact $bandlist $fq]
         incr pos -1
         set band [lindex $bandlist $pos]
@@ -22,11 +27,12 @@ proc readLog {} {
         regexp {RSTR:([0-9]{3}) (.*)$} $allrem - rstr rem
         insertLog $utc $call $rsts $rstr $rem
     }
+    close $fh
 }
 
 proc openLog {ref} {
 
-    global logfile adif utcDate entryMode
+    global logfile adif utcDate entryMode cwd
 
     regsub / $ref _ ref
     set logfile "[clock format [clock seconds] -format %Y-%m-%d]_${ref}.csv"
@@ -39,7 +45,7 @@ proc openLog {ref} {
 	}
     }
     
-    if {[file exists $logfile]} {
+    if {[file exists [file join $cwd $logfile]]} {
 	readLog
     }		
 }

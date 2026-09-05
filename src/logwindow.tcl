@@ -104,8 +104,10 @@ proc logwindow {ref info} {
 
     global band box qsocount bandlist tcl_platform mode entryMode
 
-    wm title . "SOTALog v2.2.2 by HB9TVK"
-    wm geometry . "800x480+0+0"
+    wm title . "SOTALog v$::SOTALOG_VERSION by HB9TVK"
+    # Position only - the size is worked out from the finished layout at the
+    # end of this procedure.
+    wm geometry . +0+0
     update idletasks
 
     set band 40m
@@ -202,6 +204,17 @@ proc logwindow {ref info} {
     grid .footer -in .top -row 3 -column 0 -columnspan 2 -sticky s
 
     pack .top
+
+    # Size the window from what the layout actually needs.  This used to be a
+    # hardcoded 800x480, right for the 96 dpi screens of 2015 - the layout
+    # asks for 810x477 there.  It scales with the display, though, wanting
+    # 1170x701 at 200%, and the surplus was simply clipped, which is why the
+    # window had to be dragged open by hand.  fitToScreen shrinks the fonts
+    # instead on a display too small for the layout, so nothing is lost.
+    lassign [fitToScreen [winfo screenwidth .] [winfo screenheight .]] winw winh
+    wm geometry . [set winw]x[set winh]+0+0
+    wm minsize . $winw $winh
+
     if {$entryMode} {
 	focus .sotalog.utc
     } else {

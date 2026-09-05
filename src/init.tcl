@@ -1,4 +1,8 @@
-package provide SOTALog 2.2
+# The release version, shown in the window title and used by the macOS build.
+# package provide keeps only major.minor so that it continues to match the
+# "package ifneeded SOTALog 2.2" line in SOTALog.vfs/lib/SOTALog/pkgIndex.tcl.
+set SOTALOG_VERSION 2.2.2
+package provide SOTALog [join [lrange [split $SOTALOG_VERSION .] 0 1] .]
 
 package require Tk
 package require http
@@ -21,6 +25,62 @@ proc createFonts {} {
     }
     font create sotamono
     font configure sotamono -family Courier -size 16 -weight bold
+}
+
+# Multiplies every application font by factor, for displays too small to show
+# the layout at its natural size.  Sizes are held at a floor of 6 points: past
+# that the text stops being readable and shrinking further buys nothing.
+# Returns 1 if anything actually changed, 0 if every font was already at the
+# floor.
+proc scaleFonts {factor} {
+    set changed 0
+    foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} {
+        set size [font configure $f -size]
+        set new [expr {int($size * $factor)}]
+        if {$new < 6} { set new 6 }
+        if {$new != $size} {
+            font configure $f -size $new
+            set changed 1
+        }
+    }
+    return $changed
+}
+
+# Shrinks the fonts until the main window's layout fits a screen of sw x sh,
+# and returns the {width height} the window should use.
+#
+# The layout is built entirely from point-sized fonts and character-counted
+# widget widths, so it scales with the display: about 810x477 at 96 dpi, but
+# 1170x701 at 200% scaling and only 273x218 if the fonts are taken right down.
+# On a display smaller than the layout's natural size - the 320x240 panels
+# this has been run on, for instance - the alternative is clipping the surplus
+# off with no way to reach it.
+proc fitToScreen {sw sh} {
+    update idletasks
+
+    # Widget widths are given in characters, so the layout scales close to
+    # linearly with font size; a couple of passes converge.
+    for {set pass 0} {$pass < 3} {incr pass} {
+        set w [winfo reqwidth .]
+        set h [winfo reqheight .]
+        if {$w <= $sw && $h <= $sh} { break }
+        if {![scaleFonts [expr {min(double($sw) / $w, double($sh) / $h)}]]} { break }
+        update idletasks
+    }
+
+    set w [winfo reqwidth .]
+    set h [winfo reqheight .]
+
+    # Only still oversized if the fonts hit their legibility floor.  Cap at the
+    # screen so the window itself remains usable, and warn: at that point the
+    # display is genuinely too small for this layout.
+    if {$w > $sw || $h > $sh} {
+        logMsg error "layout needs ${w}x${h} but the screen is only ${sw}x${sh};\
+            the window will be capped and some of it will not be visible"
+        if {$w > $sw} { set w $sw }
+        if {$h > $sh} { set h $sh }
+    }
+    return [list $w $h]
 }
 
 proc Show.Modal {win onclose} {

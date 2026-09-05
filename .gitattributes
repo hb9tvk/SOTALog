@@ -1,0 +1,20 @@
+# Normalise text, but keep the generated data files byte-for-byte: summits.thm
+# is a single 13 MB line and sotacalls.txt is served with CRLF, so neither
+# should be rewritten on checkout.
+# eol=lf everywhere: every text file in this repo is already LF in both the
+# index and the working tree, and keeping it that way avoids checkout churn.
+* text=auto eol=lf
+
+*.tcl   text eol=lf
+*.sh    text eol=lf
+*.bat   text eol=crlf
+*.json  text eol=lf
+*.md    text eol=lf
+
+summits.thm   -text
+sotacalls.txt -text
+names.txt     -text
+kx3.ini       -text
+
+*.ico  binary
+*.icns binary
