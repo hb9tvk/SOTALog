@@ -18,7 +18,7 @@ if {[info exists env(SOTALOG_DEBUG)] && [string is integer -strict $env(SOTALOG_
 }
 catch {fconfigure stderr -buffering line}
 
-proc logMsg {level msg} {
+proc ::sotalog::logMsg {level msg} {
     global logLevel logLevels
 
     if {![info exists logLevels($level)]} { set level error }

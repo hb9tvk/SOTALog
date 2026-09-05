@@ -30,5 +30,5 @@ if {$failed} {
     puts stderr "$failed module(s) failed to load"
     exit 1
 }
-puts "[llength $sotalogModules] modules listed, all loadable, [llength [info procs]] procedures defined"
+puts "[llength $sotalogModules] modules listed, all loadable,\n    [llength [info procs ::sotalog::*]] procedures defined in ::sotalog"
 exit 0

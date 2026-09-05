@@ -1,0 +1,96 @@
+# The keyboard bindings.
+#
+# Everything else drives the procedures directly.  These fire real Tk events,
+# which is the only thing that proves the binding scripts resolve - they are
+# evaluated at the global level, so they name their procedures in full while
+# the modules call each other by bare name.
+
+set ::env(TZ) UTC
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+freezeClock 1757073930
+
+# helpers.tcl withdraws the root window, but Tk will not deliver key events to
+# an unmapped window, so this file needs it on screen.  It appears briefly
+# while the suite runs.
+wm deiconify .
+update
+
+# saveRef reads the summit database, so give it a small one.
+set dir [sandbox]
+set fh [open [file join $dir summits.thm] w]
+fconfigure $fh -encoding iso8859-1 -translation lf
+puts $fh "HB/BE-003,name Eiger HB/BE-003,alt 3967 HB/BE-003,pts 10"
+puts $fh {}
+puts $fh {}
+puts $fh {}
+close $fh
+set ::cwd $dir
+set ::enteredRef 0
+
+if {[lsearch -exact [font names] sotabig] < 0} { createFonts }
+enterRef
+
+test ref-entry-return-binding {Return in the ref dialog accepts the summit} -body {
+    .ref.ref configure -validate none
+    .ref.ref insert 0 "HB/BE-003"
+    event generate . <Return>
+    list $::enteredRef $::ref [winfo exists .ref]
+} -result {1 HB/BE-003 0}
+
+# The ref dialog is gone; bring up the log window as main.tcl would.
+startLogWindow $dir 0
+wm deiconify .
+update
+
+test band-switch-bindings {Page Down and Page Up move through the bands} -setup {
+    set ::band 40m
+} -body {
+    event generate . <Next>
+    set up $::band
+    event generate . <Prior>
+    set back $::band
+    event generate . <Prior>
+    list $up $back $::band
+} -result {30m 40m 60m}
+
+test mode-toggle-binding {F8 cycles the mode} -setup {
+    set ::band 40m
+    set ::mode CW
+} -body {
+    event generate . <F8>
+    set first $::mode
+    event generate . <F8>
+    list $first $::mode
+} -result {SSB CW}
+
+test return-logs-the-qso {Return in the log window saves and clears} -setup {
+    set ::band 40m
+    set ::mode CW
+    set ::box {}
+    initCounter
+    .loghist.box delete 0 end
+    setEntry .sotalog.call HB9XYZ
+    setEntry .sotalog.rsts 599
+    setEntry .sotalog.rstr 579
+    setEntry .sotalog.rem ""
+} -body {
+    event generate . <Return>
+    update idletasks
+    list [llength $::box] $::qsocount(40m) [.sotalog.call get] \
+        [string trim [readFile [file join $dir $::logfile]]]
+} -result {1 1 {} {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579"}}
+
+test escape-clears-the-fields {Escape abandons what has been typed} -setup {
+    setEntry .sotalog.call DL1ABC
+    setEntry .sotalog.rsts 559
+} -body {
+    event generate . <Escape>
+    update idletasks
+    list [.sotalog.call get] [.sotalog.rsts get]
+} -result {{} {}}
+
+removeSandboxes
+cleanupTests

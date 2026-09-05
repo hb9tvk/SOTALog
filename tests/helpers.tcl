@@ -31,6 +31,10 @@ proc sotalogtest::loadModules {} {
         if {$m eq "main.tcl"} continue
         uplevel #0 [list source [file join $root src $m]]
     }
+
+    # The application lives in ::sotalog; the tests call its procedures by
+    # their bare names, as the modules do among themselves.
+    uplevel #0 {namespace import -force ::sotalog::*}
 }
 
 # A scratch directory standing in for the application's data directory.

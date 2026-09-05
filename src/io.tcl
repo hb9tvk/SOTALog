@@ -25,7 +25,7 @@
 
 # The CSV keeps both reports and the summit-to-summit reference inside the
 # remark column, ahead of whatever the operator typed.
-proc formatQsoCsv {qso} {
+proc ::sotalog::formatQsoCsv {qso} {
     set rem ""
     foreach {prefix key} {RSTS rsts RSTR rstr S2S s2s} {
         set value [dict get $qso $key]
@@ -53,7 +53,7 @@ proc formatQsoCsv {qso} {
 # The inverse: pull a QSO back out of one CSV line.  The band is not recovered
 # here because only the frequency is recorded and mapping it back needs the
 # band table; readLog does that.
-proc parseQsoCsv {line} {
+proc ::sotalog::parseQsoCsv {line} {
     set field [split $line ,]
     set allrem [string trim [lindex [lrange $field 9 end] 0] \"]
 
@@ -84,7 +84,7 @@ proc parseQsoCsv {line} {
 # One ADIF record.  Every field declares its own length, so a report that is
 # absent is left out altogether rather than written with a length it does not
 # have.
-proc formatQsoAdif {qso} {
+proc ::sotalog::formatQsoAdif {qso} {
     set call     [dict get $qso call]
     set mode     [dict get $qso mode]
     set mycall   [dict get $qso mycall]
@@ -119,7 +119,7 @@ proc formatQsoAdif {qso} {
 }
 
 # Gathers what is currently in the entry fields into a QSO.
-proc qsoFromEntry {} {
+proc ::sotalog::qsoFromEntry {} {
     global band w2f myCall s2s mode ref entryMode utcDate
 
     set utc [clock format [clock seconds] -gmt true -format %H%M]
@@ -150,14 +150,14 @@ proc qsoFromEntry {} {
         ref      $ref]
 }
 
-proc appendLine {path line} {
+proc ::sotalog::appendLine {path line} {
     set fh [open $path a]
     fconfigure $fh -encoding utf-8
     puts $fh $line
     close $fh
 }
 
-proc readLog {} {
+proc ::sotalog::readLog {} {
     # Reloads an activation already in progress.  Band is left where the last
     # logged QSO was, so a resumed session carries on where it stopped.  Mode
     # deliberately is not restored: it stays at the session default instead of
@@ -184,7 +184,7 @@ proc readLog {} {
     close $fh
 }
 
-proc openLog {ref} {
+proc ::sotalog::openLog {ref} {
 
     global logfile adif utcDate entryMode cwd
 
@@ -204,7 +204,7 @@ proc openLog {ref} {
     }
 }
 
-proc saveLog {} {
+proc ::sotalog::saveLog {} {
 
     global logfile adif cwd
 

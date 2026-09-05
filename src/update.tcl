@@ -34,7 +34,7 @@ array set updateEncoding {
     sotacalls.txt utf-8
 }
 
-proc updateProgress {token total current} {
+proc ::sotalog::updateProgress {token total current} {
     # A server that sends no Content-Length reports a total of 0.
     if {$total <= 0} { return }
     .cfg.progress configure -value [expr {$current * 100 / $total}]
@@ -44,13 +44,13 @@ proc updateProgress {token total current} {
 # plausible: the request succeeded, the status was 200, and the result is no
 # smaller than both a fixed floor and half of whatever we already hold.
 # Returns an error message, or the empty string on success.
-proc updateDataFile {name} {
+proc ::sotalog::updateDataFile {name} {
     global cwd updateBaseUrl updateMinBytes updateEncoding
 
     set target [file join $cwd $name]
 
     if {[catch {
-        ::http::geturl $updateBaseUrl/$name -timeout 600000 -progress updateProgress
+        ::http::geturl $updateBaseUrl/$name -timeout 600000 -progress ::sotalog::updateProgress
     } token]} {
         return "download failed: $token"
     }
@@ -77,7 +77,7 @@ proc updateDataFile {name} {
 # Installs one data file, in the encoding that file is kept in, through a
 # temporary name so an interrupted write cannot leave a partial file behind.
 # Returns an error message, or the empty string on success.
-proc writeDataFile {name data} {
+proc ::sotalog::writeDataFile {name data} {
     global cwd updateEncoding
 
     set target [file join $cwd $name]
@@ -98,7 +98,7 @@ proc writeDataFile {name data} {
     return ""
 }
 
-proc updateCallsAndSummits {} {
+proc ::sotalog::updateCallsAndSummits {} {
 
     global updated
 

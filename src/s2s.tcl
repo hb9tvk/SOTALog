@@ -8,7 +8,7 @@
 # fixed prefix is stripped from what is displayed.
 
 # Replaces the suggestion pane, which is kept read-only between updates.
-proc showS2sSuggestions {matches} {
+proc ::sotalog::showS2sSuggestions {matches} {
     .s2s.suggest configure -state normal
     .s2s.suggest delete 1.0 end
     .s2s.suggest insert end $matches
@@ -16,7 +16,7 @@ proc showS2sSuggestions {matches} {
 }
 
 # Red while what has been typed so far matches nothing known.
-proc markS2sField {entry matches} {
+proc ::sotalog::markS2sField {entry matches} {
     if {[string length $matches]} {
         $entry configure -fg black
     } else {
@@ -28,7 +28,7 @@ proc markS2sField {entry matches} {
 # with the fixed prefix removed so the pane shows only what is being typed.
 # Both are shown, and the field is coloured unless no entry is given - the
 # focusin branches list candidates without passing judgement on the contents.
-proc s2sSuggest {arrayName pattern strip {entry ""}} {
+proc ::sotalog::s2sSuggest {arrayName pattern strip {entry ""}} {
     upvar #0 $arrayName candidates
 
     set matches [lsort [array names candidates -glob $pattern]]
@@ -38,7 +38,7 @@ proc s2sSuggest {arrayName pattern strip {entry ""}} {
     return $matches
 }
 
-proc saveS2s {} {
+proc ::sotalog::saveS2s {} {
     global s2s summits
 
     if {[string length [.s2s.num get]]} {
@@ -56,7 +56,7 @@ proc saveS2s {} {
     }
 }
 
-proc validateNum {validation action new vaction newval} {
+proc ::sotalog::validateNum {validation action new vaction newval} {
     set curreg [.s2s.ass get]/[.s2s.reg get]
 
     if {$vaction eq "key" && $action == 1} {
@@ -81,7 +81,7 @@ proc validateNum {validation action new vaction newval} {
     return 1
 }
 
-proc validateReg {validation action new vaction newval} {
+proc ::sotalog::validateReg {validation action new vaction newval} {
     global regions
 
     set curass [.s2s.ass get]
@@ -120,7 +120,7 @@ proc validateReg {validation action new vaction newval} {
     return 1
 }
 
-proc validateAss {validation action new vaction newval} {
+proc ::sotalog::validateAss {validation action new vaction newval} {
     global assocs
 
     if {$vaction eq "key" && $action == 1} {
@@ -163,9 +163,10 @@ proc validateAss {validation action new vaction newval} {
     }
     return 1
 }
+
 # Builds the dialog and its bindings.  Kept separate from s2sDialog so that
 # the entry validation can be exercised without entering the modal loop.
-proc s2sWidgets {} {
+proc ::sotalog::s2sWidgets {} {
     global assocs s2s
 
     toplevel .s2s
@@ -180,9 +181,9 @@ proc s2sWidgets {} {
     label .s2s.slash -text "/" -font sotahuge
     label .s2s.dash -text "-" -font sotahuge
 
-    entry .s2s.ass -width 4 -font sotahuge -bd 1 -validatecommand {validateAss %v %d %S %V %P} -validate all
-    entry .s2s.reg -width 3 -font sotahuge -bd 1 -validatecommand {validateReg %v %d %S %V %P} -validate all
-    entry .s2s.num -width 4 -font sotahuge -bd 1 -validatecommand {validateNum %v %d %S %V %P} -validate all
+    entry .s2s.ass -width 4 -font sotahuge -bd 1 -validatecommand {::sotalog::validateAss %v %d %S %V %P} -validate all
+    entry .s2s.reg -width 3 -font sotahuge -bd 1 -validatecommand {::sotalog::validateReg %v %d %S %V %P} -validate all
+    entry .s2s.num -width 4 -font sotahuge -bd 1 -validatecommand {::sotalog::validateNum %v %d %S %V %P} -validate all
 
     text .s2s.suggest -background white -wrap word -font sotamono -foreground blue \
     -width 40 -height 8
@@ -206,7 +207,7 @@ proc s2sWidgets {} {
     grid .s2s.suggest -row 1 -column 0 -columnspan 5
 }
 
-proc s2sDialog {} {
+proc ::sotalog::s2sDialog {} {
     s2sWidgets
 
     focus .s2s.ass

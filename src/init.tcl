@@ -1,3 +1,13 @@
+# Every procedure in the application lives in this namespace.  Tk callbacks -
+# bindings, -validatecommand, -command, fileevent, after - are evaluated at
+# the global level, so those references have to be written out in full; a bare
+# name in a binding would no longer resolve.
+#
+# The variables are still global for now.  Moving them is a separate step.
+namespace eval ::sotalog {
+    namespace export *
+}
+
 # The release version, shown in the window title and used by the macOS build.
 # package provide keeps only major.minor so that it continues to match the
 # "package ifneeded SOTALog 2.2" line in SOTALog.vfs/lib/SOTALog/pkgIndex.tcl.
@@ -7,7 +17,7 @@ package provide SOTALog [join [lrange [split $SOTALOG_VERSION .] 0 1] .]
 package require Tk
 package require http
 
-proc createFonts {} {
+proc ::sotalog::createFonts {} {
     global tcl_platform
     font create sotabig
     font configure sotabig -family Helvetica -size 32 -weight bold
@@ -32,7 +42,7 @@ proc createFonts {} {
 # that the text stops being readable and shrinking further buys nothing.
 # Returns 1 if anything actually changed, 0 if every font was already at the
 # floor.
-proc scaleFonts {factor} {
+proc ::sotalog::scaleFonts {factor} {
     set changed 0
     foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} {
         set size [font configure $f -size]
@@ -55,7 +65,7 @@ proc scaleFonts {factor} {
 # On a display smaller than the layout's natural size - the 320x240 panels
 # this has been run on, for instance - the alternative is clipping the surplus
 # off with no way to reach it.
-proc fitToScreen {sw sh} {
+proc ::sotalog::fitToScreen {sw sh} {
     update idletasks
 
     # Widget widths are given in characters, so the layout scales close to
@@ -83,7 +93,7 @@ proc fitToScreen {sw sh} {
     return [list $w $h]
 }
 
-proc Show.Modal {win onclose} {
+proc ::sotalog::Show.Modal {win onclose} {
     set ::Modal.Result {}
     array set options [list -onclose {} -destroy 0 -onclose $onclose ]
     wm transient $win .
@@ -104,7 +114,7 @@ proc Show.Modal {win onclose} {
 # than inheriting whatever the system encoding happens to be - that is exactly
 # how summits.thm came to be misread.  UTF-8 matches the log files and leaves
 # the current contents byte for byte identical.
-proc loadNames {} {
+proc ::sotalog::loadNames {} {
 
     global names cwd
 
@@ -117,7 +127,7 @@ proc loadNames {} {
     close $fh
 }
 
-proc loadSotaCalls {} {
+proc ::sotalog::loadSotaCalls {} {
 
     global sotacalls cwd
 

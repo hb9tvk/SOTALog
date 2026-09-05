@@ -14,7 +14,7 @@ set configSettings {myCall oneKeyReport entryMode utcDate}
 #
 # The value is taken verbatim to the end of the line, so nothing inside it can
 # change how the rest of the line is read.
-proc parseConfig {text} {
+proc ::sotalog::parseConfig {text} {
     global configSettings
 
     set settings [dict create]
@@ -39,7 +39,7 @@ proc parseConfig {text} {
     return $settings
 }
 
-proc saveConfig {} {
+proc ::sotalog::saveConfig {} {
 
     global myCall oneKeyReport entryMode utcDate cwd configSettings
 
@@ -68,7 +68,7 @@ proc saveConfig {} {
     }
 }
 
-proc loadConfig {} {
+proc ::sotalog::loadConfig {} {
 
     global myCall oneKeyReport entryMode cwd utcDate
 
@@ -97,7 +97,7 @@ proc loadConfig {} {
     }
 }
 
-proc configDialog {} {
+proc ::sotalog::configDialog {} {
 
     global myCall oneKeyReport entryMode updated utcDate
    
@@ -114,7 +114,7 @@ proc configDialog {} {
     bind .cfg <Escape> $cancel
 
     label .cfg.callLabel -text "My Call:" -font sotasmall
-    entry .cfg.call -width 11 -font sotasmall -bd 1 -validatecommand {validateCall %v %d %S %V} -validate all
+    entry .cfg.call -width 11 -font sotasmall -bd 1 -validatecommand {::sotalog::validateCall %v %d %S %V} -validate all
     .cfg.call insert 0 $myCall
     
     label .cfg.okrprtLabel -text "One-Key rprt:" -font sotasmall
@@ -148,7 +148,7 @@ proc configDialog {} {
     }
     
     label .cfg.updateCallsAndSummits -text "Update calls and summits" -font sotasmall
-    button .cfg.update -text Update -command updateCallsAndSummits
+    button .cfg.update -text Update -command ::sotalog::updateCallsAndSummits
     
     button .cfg.ok -text Ok -command $ok
     button .cfg.cancel -text Cancel -command $cancel

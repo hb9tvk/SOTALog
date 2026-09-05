@@ -2,7 +2,7 @@ set kx3bands [list BN03\; 40m BN04\; 30m BN05\; 20m BN06\; 17m BN07\; 15m \
     BN08\; 12m BN09\; 10m BN10\; " 6m"]
 array set kx32b $kx3bands
 
-proc kx3band {} {
+proc ::sotalog::kx3band {} {
     global serial kx32b band
 
     set response [read $serial 5]
@@ -11,7 +11,7 @@ proc kx3band {} {
     }
 }
 
-proc kx3poll {} {
+proc ::sotalog::kx3poll {} {
     global serial
 
     #puts "poll..."
@@ -21,10 +21,10 @@ proc kx3poll {} {
             flush $serial
         }
     }
-    after 1000 kx3poll
+    after 1000 ::sotalog::kx3poll
 }
 
-proc initSerial {} {
+proc ::sotalog::initSerial {} {
     global serial cwd
 
     if {![file exists [file join $cwd kx3.ini]]} {
@@ -37,7 +37,7 @@ proc initSerial {} {
     if {[catch {
 		set serial [open $sp r+]
 		fconfigure $serial -mode 38400,n,8,1 -blocking 1 -translation auto -buffering none
-		fileevent $serial readable kx3band
+		fileevent $serial readable ::sotalog::kx3band
 	    } msg]} {
         #puts "boing: $msg"
         set serial ""

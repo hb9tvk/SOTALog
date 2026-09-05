@@ -1,5 +1,5 @@
 
-proc enterRef {} {
+proc ::sotalog::enterRef {} {
 
     wm title . "Enter SOTA REF"
     wm protocol . WM_DELETE_WINDOW {
@@ -7,10 +7,10 @@ proc enterRef {} {
     }
 
     frame .ref
-    bind . <Return> { saveRef }
+    bind . <Return> { ::sotalog::saveRef }
 
     label .ref.label -text "Enter SOTA REF:" -font sotabig
-    entry .ref.ref -width 11 -font sotabig -bd 1 -validatecommand {processRef %v %d %S %V} -validate all
+    entry .ref.ref -width 11 -font sotabig -bd 1 -validatecommand {::sotalog::processRef %v %d %S %V} -validate all
     
 
 
@@ -22,7 +22,7 @@ proc enterRef {} {
     raise .ref
 }
 
-proc processRef {validation action new vaction} {
+proc ::sotalog::processRef {validation action new vaction} {
     if {$vaction == "key" && $action == 1} {
         if {$new == "."} { set new "/" }
         .ref.ref insert insert [string toupper $new]
@@ -32,7 +32,7 @@ proc processRef {validation action new vaction} {
     return 1
 }
 
-proc saveRef {} {
+proc ::sotalog::saveRef {} {
 
     global enteredRef ref summits refs assocs regions cwd
     
@@ -66,7 +66,7 @@ proc saveRef {} {
 # UTF-8, so every accented summit name came back as replacement characters.
 # ISO-8859-1 is also the only encoding whose 256 values map one-to-one onto
 # bytes, so nothing can be substituted or lost on the way in or out.
-proc loadSummits {} {
+proc ::sotalog::loadSummits {} {
     global summits refs assocs regions cwd
 
     set fh [open [file join $cwd summits.thm] r]

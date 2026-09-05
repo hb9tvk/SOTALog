@@ -1,0 +1,95 @@
+# Every procedure named from a Tk callback must be named in full.
+#
+# Bindings, -validatecommand, -command, fileevent, after and -progress scripts
+# are all evaluated at the global level, while the modules call each other by
+# bare name from inside ::sotalog.  An unqualified name in one of those places
+# therefore works everywhere except where it matters, and fails only when the
+# user presses the key.
+#
+# The running tests cannot catch this: helpers.tcl imports ::sotalog::* into
+# the global namespace so the tests can use bare names, and that import makes
+# an unqualified callback resolve perfectly well.  So this is a static check
+# of the sources instead.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+
+set srcdir [file join $::sotalogtest::root src]
+
+# Every procedure the application defines.
+set procNames {}
+foreach path [lsort [glob [file join $srcdir *.tcl]]] {
+    set fh [open $path r]
+    foreach line [split [read $fh] \n] {
+        if {[regexp {^proc ::sotalog::([A-Za-z0-9_.]+)} $line -> name]} {
+            lappend procNames $name
+        }
+    }
+    close $fh
+}
+
+# Lines that hand a script to Tk or to the event loop.
+set callbackMarkers {bind -validatecommand -command fileevent -progress "after "}
+
+proc unqualifiedCallbacks {srcdir procNames markers} {
+    set found {}
+    foreach path [lsort [glob [file join $srcdir *.tcl]]] {
+        set fh [open $path r]
+        set text [read $fh]
+        close $fh
+
+        set number 0
+        foreach line [split $text \n] {
+            incr number
+            set trimmed [string trim $line]
+            # Comments mention procedure names in prose, and the word
+            # "bindings" trips the "bind" marker.
+            if {[string index $trimmed 0] eq "#"} { continue }
+            if {[string match "*proc ::sotalog::*" $line]} { continue }
+
+            set isCallback 0
+            foreach marker $markers {
+                if {[string match "*$marker*" $line]} { set isCallback 1; break }
+            }
+            if {!$isCallback} { continue }
+
+            foreach name $procNames {
+                # A bare occurrence is one not already preceded by the
+                # namespace qualifier, hence the test on the character before
+                # it.  The name is escaped because one of them contains a dot
+                # (Show.Modal), and braced because "$name(" would otherwise
+                # read as an array element.
+                set escaped [string map {. {\.}} $name]
+                set pattern "(^|\[^:A-Za-z0-9_\])${escaped}(\$|\[^A-Za-z0-9_\])"
+                if {[regexp $pattern $line]} {
+                    lappend found "[file tail $path]:$number: $name"
+                }
+            }
+        }
+    }
+    return $found
+}
+
+test every-callback-is-qualified {no Tk callback names a procedure by its bare name} -body {
+    unqualifiedCallbacks $srcdir $procNames $callbackMarkers
+} -result {}
+
+test the-check-can-fail {the check actually detects one
+    Guards against the scan silently matching nothing and passing for the
+    wrong reason.
+} -body {
+    set scratch [sandbox]
+    set fh [open [file join $scratch fake.tcl] w]
+    puts $fh "proc ::sotalog::saveLog {} {}"
+    puts $fh "bind . <Return> { saveLog }"
+    close $fh
+    unqualifiedCallbacks $scratch {saveLog} $callbackMarkers
+} -result {{fake.tcl:2: saveLog}}
+
+test procs-were-found {the scan found the procedures it is checking against} -body {
+    expr {[llength $procNames] > 40}
+} -result 1
+
+removeSandboxes
+cleanupTests

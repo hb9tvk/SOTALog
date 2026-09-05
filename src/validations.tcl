@@ -8,7 +8,7 @@
 # slashes the old code always returned the middle part, which is right for
 # DL/HB9TVK/P but gave "P" for HB9TVK/P/QRP.  Calls with more than two slashes
 # were previously returned unchanged.
-proc getBasecall {call} {
+proc ::sotalog::getBasecall {call} {
     set base ""
     foreach part [split $call /] {
         if {[string length $part] >= [string length $base]} { set base $part }
@@ -16,7 +16,7 @@ proc getBasecall {call} {
     return $base
 }
 
-proc processUTC {validation action new vaction newval} {
+proc ::sotalog::processUTC {validation action new vaction newval} {
     if {$vaction == "key" && $action == 1} {
     	if {$new == " "} {
             focus .sotalog.call
@@ -34,7 +34,7 @@ proc processUTC {validation action new vaction newval} {
     return 1
 }
 
-proc processCall {validation action new vaction newval} {
+proc ::sotalog::processCall {validation action new vaction newval} {
 
     global names sinfo sotacalls mode
 
@@ -70,7 +70,7 @@ proc processCall {validation action new vaction newval} {
     return 1
 }
 
-proc processRSTs {validation action new vaction} {
+proc ::sotalog::processRSTs {validation action new vaction} {
     global oneKeyReport mode
     if {$vaction == "key" && $action == 1} {
         after idle [list .sotalog.rsts configure -validate $validation]
@@ -103,7 +103,7 @@ proc processRSTs {validation action new vaction} {
     return 1
 }
 
-proc processRSTr {validation action new vaction} {
+proc ::sotalog::processRSTr {validation action new vaction} {
     global oneKeyReport mode
     if {$vaction == "key" && $action == 1} {
         after idle [list .sotalog.rstr configure -validate $validation]
@@ -136,7 +136,7 @@ proc processRSTr {validation action new vaction} {
     return 1
 }
 
-proc filterRemark {action key} {
+proc ::sotalog::filterRemark {action key} {
     if {$action == 1} {
 	if {[regexp {[\ -~]} $key]} { return 1}
         if {[regexp {[^[:print:]]} $key]} {
@@ -146,7 +146,7 @@ proc filterRemark {action key} {
     return 1
 }
 
-proc validateCall {validation action new vaction} {
+proc ::sotalog::validateCall {validation action new vaction} {
     if {$vaction == "key" && $action == 1} {
         after idle [list .cfg.call configure -validate $validation]
         if {![regexp {[A-Za-z0-9/]} $new]} {

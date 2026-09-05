@@ -105,12 +105,15 @@ test load-missing-settings-keep-defaults {settings absent from the file keep the
 
 test load-missing-file-opens-dialog {a first run with no file asks for one} -setup {
     set ::cwd [sandbox]
-    rename configDialog realConfigDialog
-    proc configDialog {} { set ::dialogOpened 1 }
+    # loadConfig calls configDialog from inside ::sotalog, so the stub has to
+    # replace the real command there; replacing the imported global alias
+    # would leave the namespace resolving to the real dialog.
+    rename ::sotalog::configDialog ::sotalog::realConfigDialog
+    proc ::sotalog::configDialog {} { set ::dialogOpened 1 }
     set ::dialogOpened 0
 } -cleanup {
-    rename configDialog {}
-    rename realConfigDialog configDialog
+    rename ::sotalog::configDialog {}
+    rename ::sotalog::realConfigDialog ::sotalog::configDialog
 } -body {
     loadConfig
     set ::dialogOpened

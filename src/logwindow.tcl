@@ -1,5 +1,5 @@
 
-proc clear {} {
+proc ::sotalog::clear {} {
     global sinfo s2s mode entryMode
     .sotalog.call delete 0 end
     .sotalog.rsts delete 0 end
@@ -17,7 +17,7 @@ proc clear {} {
     }
 }
 
-proc initCounter {} {
+proc ::sotalog::initCounter {} {
     global qsocount bandlist
 
     foreach {wl fq} $bandlist {
@@ -25,7 +25,7 @@ proc initCounter {} {
     }
 }
 
-proc modeToggle {} {
+proc ::sotalog::modeToggle {} {
     global mode modes sinfo
     set pos [lsearch -exact $modes $mode]
     incr pos
@@ -34,7 +34,7 @@ proc modeToggle {} {
     .sotalog.info configure -text "$sinfo Mode: $mode"
 }
 
-proc bandSwitch {up} {
+proc ::sotalog::bandSwitch {up} {
     global band bandlist
 
     set pos [lsearch -exact $bandlist $band]
@@ -52,7 +52,7 @@ proc bandSwitch {up} {
     set band [lindex $bandlist $pos]
 }
 
-proc updateSuggestions {part} {
+proc ::sotalog::updateSuggestions {part} {
 
     global sotacalls
 
@@ -63,7 +63,7 @@ proc updateSuggestions {part} {
     .suggest.txt configure -state disabled
 }
 
-proc pickSuggestion {x y} {
+proc ::sotalog::pickSuggestion {x y} {
 
     set index [lindex [split [.suggest.txt index @$x,$y] .] 1]
     set s [.suggest.txt get 1.0 1.end]
@@ -76,7 +76,7 @@ proc pickSuggestion {x y} {
     }
 }
 
-proc insertLog {utc call rsts rstr rem} {
+proc ::sotalog::insertLog {utc call rsts rstr rem} {
 
     global box band qsocount s2s
     
@@ -100,7 +100,7 @@ proc insertLog {utc call rsts rstr rem} {
     .bandmap.l$band configure -text "($qsocount($band))" -font sotamicro
 }
 
-proc logwindow {ref info} {
+proc ::sotalog::logwindow {ref info} {
 
     global band box qsocount bandlist tcl_platform mode entryMode
 
@@ -112,15 +112,15 @@ proc logwindow {ref info} {
 
     set band 40m
 
-    bind . <Return> { saveLog }
-    bind . <Escape> { clear }
-    bind . <comma> { clear }
-    bind . <Prior> { bandSwitch 0 }
-    bind . <Next> { bandSwitch 1 }
-    bind . <F10> { configDialog }
-    bind . <F9> { s2sDialog }
-    bind . <Up> { s2sDialog }
-    bind . <F8> { modeToggle }
+    bind . <Return> { ::sotalog::saveLog }
+    bind . <Escape> { ::sotalog::clear }
+    bind . <comma> { ::sotalog::clear }
+    bind . <Prior> { ::sotalog::bandSwitch 0 }
+    bind . <Next> { ::sotalog::bandSwitch 1 }
+    bind . <F10> { ::sotalog::configDialog }
+    bind . <F9> { ::sotalog::s2sDialog }
+    bind . <Up> { ::sotalog::s2sDialog }
+    bind . <F8> { ::sotalog::modeToggle }
     bind . <Home> { focus [tk_focusPrev [focus]]}
     bind . <End> { focus [tk_focusNext [focus]]}
 
@@ -138,15 +138,15 @@ proc logwindow {ref info} {
 
     set remwidth 6
     if {$entryMode} {
-	entry .sotalog.utc -font sotahuge -width 4 -highlightthickness 4 -highlightcolor red -validatecommand {processUTC %v %d %S %V %P} -validate all
+	entry .sotalog.utc -font sotahuge -width 4 -highlightthickness 4 -highlightcolor red -validatecommand {::sotalog::processUTC %v %d %S %V %P} -validate all
 	label .sotalog.lutc -text UTC
 	set remwidth 3
     }
     
-    entry .sotalog.call -font sotahuge -width 12 -highlightthickness 4 -highlightcolor red -validatecommand {processCall %v %d %S %V %P} -validate all
-    entry .sotalog.rsts -width 3 -font sotahuge -highlightthickness 4 -highlightcolor red -validatecommand {processRSTs %v %d %S %V} -validate all
-    entry .sotalog.rstr -width 3 -font sotahuge -highlightthickness 4 -highlightcolor red -validatecommand {processRSTr %v %d %S %V} -validate all
-    entry .sotalog.rem  -width $remwidth -font sotahuge -highlightthickness 4 -highlightcolor red -validate key -validatecommand {filterRemark %d %S}
+    entry .sotalog.call -font sotahuge -width 12 -highlightthickness 4 -highlightcolor red -validatecommand {::sotalog::processCall %v %d %S %V %P} -validate all
+    entry .sotalog.rsts -width 3 -font sotahuge -highlightthickness 4 -highlightcolor red -validatecommand {::sotalog::processRSTs %v %d %S %V} -validate all
+    entry .sotalog.rstr -width 3 -font sotahuge -highlightthickness 4 -highlightcolor red -validatecommand {::sotalog::processRSTr %v %d %S %V} -validate all
+    entry .sotalog.rem  -width $remwidth -font sotahuge -highlightthickness 4 -highlightcolor red -validate key -validatecommand {::sotalog::filterRemark %d %S}
 
     grid .sotalog.ref -row 0 -column 0 -columnspan 5 -sticky n
     grid .sotalog.info -row 1 -column 0 -columnspan 5 -sticky n
@@ -192,7 +192,7 @@ proc logwindow {ref info} {
     .suggest.txt configure -state disabled
     grid .suggest.txt -row 0 -column 0
 
-    bind .suggest.txt <ButtonPress> {pickSuggestion %x %y}
+    bind .suggest.txt <ButtonPress> {::sotalog::pickSuggestion %x %y}
     bind .suggest.txt <ButtonRelease> { focus .sotalog.rsts }
     
     label .footer -text "F8: Toggle Mode   F9: S2S entry   F10: Configuration" -font sotamicro
