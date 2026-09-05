@@ -190,34 +190,33 @@ proc validateAss {validation action new vaction newval} {
     return 1
 }
 
-proc s2sDialog {} {
+# Builds the dialog and its bindings.  Kept separate from s2sDialog so that
+# the entry validation can be exercised without entering the modal loop.
+proc s2sWidgets {} {
     global assocs s2s
-    
-    toplevel .s2s 
+
+    toplevel .s2s
     wm title .s2s "S2S entry"
 
-    set ok {set ::Modal.Result 1}
-    set cancel {set ::Modal.Result 0}
-
-    bind .s2s <Return> $ok
-    bind .s2s <Escape> $cancel
-    bind .s2s <comma> $cancel
+    bind .s2s <Return> {set ::Modal.Result 1}
+    bind .s2s <Escape> {set ::Modal.Result 0}
+    bind .s2s <comma>  {set ::Modal.Result 0}
     bind .s2s <Home> { focus [tk_focusPrev [focus]]}
     bind .s2s <End> { focus [tk_focusNext [focus]]}
 
-    
     label .s2s.slash -text "/" -font sotahuge
     label .s2s.dash -text "-" -font sotahuge
 
     entry .s2s.ass -width 4 -font sotahuge -bd 1 -validatecommand {validateAss %v %d %S %V %P} -validate all
     entry .s2s.reg -width 3 -font sotahuge -bd 1 -validatecommand {validateReg %v %d %S %V %P} -validate all
     entry .s2s.num -width 4 -font sotahuge -bd 1 -validatecommand {validateNum %v %d %S %V %P} -validate all
-    
+
     text .s2s.suggest -background white -wrap word -font sotamono -foreground blue \
     -width 40 -height 8
     .s2s.suggest insert end [lsort [array names assocs]]
     .s2s.suggest configure -state disabled
-    
+
+    # Reopening the dialog starts from whatever summit is already selected.
     if {[string length $s2s]} {
         if {[regexp {([A-Z0-9]+)/([A-Z0-9]+)-([0-9]+)} $s2s - a r n]} {
             .s2s.ass insert end $a
@@ -232,11 +231,13 @@ proc s2sDialog {} {
     grid .s2s.dash -row 0 -column 3
     grid .s2s.num -row 0 -column 4
     grid .s2s.suggest -row 1 -column 0 -columnspan 5
-        
+}
+
+proc s2sDialog {} {
+    s2sWidgets
+
     focus .s2s.ass
-    set res [Show.Modal .s2s $cancel]
-    
-    if {$res} {
+    if {[Show.Modal .s2s {set ::Modal.Result 0}]} {
         saveS2s
     }
     destroy .s2s

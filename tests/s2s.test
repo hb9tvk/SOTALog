@@ -1,0 +1,155 @@
+# The summit-to-summit entry dialog.
+#
+# Three entry fields, each narrowing a suggestion list as the operator types
+# and turning red when what has been typed matches nothing.  Characterisation
+# tests: they record the current behaviour, including its quirks, so that the
+# duplication in the three validators can be removed without changing it.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+loadFakeSummitData
+
+set ::s2s ""
+startS2sDialog
+
+test initial-suggestions {the dialog opens listing every association} -body {
+    suggestions
+} -result {DL DM F HB HB0 OE}
+
+test ass-narrows {typing narrows the associations and keeps the field black} -setup {
+    setEntry .s2s.ass ""
+} -body {
+    set rc [typeInto .s2s.ass validateAss H]
+    list $rc [.s2s.ass get] [.s2s.ass cget -fg] [suggestions]
+} -result {1 H black {HB HB0}}
+
+test ass-unknown-turns-red {a character that matches nothing turns the field red} -setup {
+    setEntry .s2s.ass HB
+} -body {
+    # Returns 0 because the field has reached three characters and focus
+    # moves on, not because of the mismatch; the text stays as typed.
+    set rc [typeInto .s2s.ass validateAss Z]
+    list $rc [.s2s.ass get] [.s2s.ass cget -fg] [suggestions]
+} -result {0 HBZ red {}}
+
+test ass-autocompletes {a single remaining candidate is filled in} -setup {
+    setEntry .s2s.ass ""
+} -body {
+    typeInto .s2s.ass validateAss O
+    list [.s2s.ass get] [suggestions]
+} -result {OE OE}
+
+test ass-delete-widens {deleting widens the list again and restores the colour} -setup {
+    setEntry .s2s.ass HB
+} -body {
+    set rc [deleteFrom .s2s.ass validateAss HB]
+    list $rc [.s2s.ass cget -fg] [suggestions]
+} -result {1 black {HB HB0}}
+
+test ass-focusout-marks-unknown {leaving the field with an unknown association marks it} -setup {
+    setEntry .s2s.ass ZZ
+} -body {
+    validateAss all 0 "" focusout ZZ
+    .s2s.ass cget -fg
+} -result red
+
+test reg-narrows {regions are listed for the chosen association, without its prefix} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg ""
+} -body {
+    set rc [typeInto .s2s.reg validateReg B]
+    list $rc [.s2s.reg get] [.s2s.reg cget -fg] [suggestions]
+} -result {1 B black BE}
+
+test reg-second-character-moves-on {a two-character region hands over to the number} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg B
+} -body {
+    set rc [typeInto .s2s.reg validateReg E]
+    list $rc [.s2s.reg get] [suggestions]
+} -result {0 BE BE}
+
+test reg-focusin-lists {entering the field lists what matches so far} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg BE
+} -body {
+    validateReg all 0 "" focusin BE
+    suggestions
+} -result BE
+
+test reg-focusout-marks-unknown {leaving with an unknown region marks it} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg ZZ
+} -body {
+    validateReg all 0 "" focusout ZZ
+    .s2s.reg cget -fg
+} -result red
+
+test num-narrows {summit numbers are listed for the chosen region, without its prefix} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg BE
+    setEntry .s2s.num ""
+} -body {
+    set first [list [typeInto .s2s.num validateNum 0] [suggestions]]
+    set second [list [typeInto .s2s.num validateNum 1] [.s2s.num get] [suggestions]]
+    list $first $second
+} -result {{1 {001 003 013}} {1 01 {001 013}}}
+
+test num-focusin-lists {entering the number field lists the region's summits
+    The glob here has no leading star, unlike the other two branches of the
+    same procedure.  It makes no difference in practice, because a reference
+    never has anything before the region, but it is recorded so that tidying
+    the duplication does not quietly change it.
+} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg BE
+    setEntry .s2s.num 01
+} -body {
+    validateNum all 0 "" focusin 01
+    suggestions
+} -result {001 013}
+
+test num-delete-widens {deleting the number widens the list again} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg BE
+    setEntry .s2s.num ""
+} -body {
+    set rc [deleteFrom .s2s.num validateNum ""]
+    list $rc [.s2s.num cget -fg] [suggestions]
+} -result {1 black {001 003 013}}
+
+# saveS2s reports into the main window, so that has to exist too.
+set dir [sandbox]
+startLogWindow $dir 0
+
+test save-builds-reference {the three fields become a padded summit reference} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg VS
+    setEntry .s2s.num 1
+} -body {
+    saveS2s
+    list $::s2s [.sotalog.s2s cget -text]
+} -result {HB/VS-001 {S2S: HB/VS-001 Dufourspitze / 10 Pts}}
+
+test save-clears-when-empty {clearing the number clears the summit-to-summit} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg VS
+    setEntry .s2s.num ""
+} -body {
+    saveS2s
+    list $::s2s [.sotalog.s2s cget -text]
+} -result {{} {}}
+
+test save-unknown-summit {a well-formed reference that is not in the data is still kept} -setup {
+    setEntry .s2s.ass HB
+    setEntry .s2s.reg BE
+    setEntry .s2s.num 999
+} -body {
+    saveS2s
+    set ::s2s
+} -result HB/BE-999
+
+removeSandboxes
+cleanupTests

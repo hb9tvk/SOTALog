@@ -137,3 +137,47 @@ proc sotalogtest::readFile {path} {
     close $fh
     return $data
 }
+
+# Fake summit data for the S2S tests: small, so they need neither the 13 MB
+# summit list nor the startup sequence that loads it.  All three are set-like
+# arrays, keyed the way summits.thm stores them.
+proc sotalogtest::loadFakeSummitData {} {
+    array set ::assocs  {HB 1 HB0 1 OE 1 DL 1 DM 1 F 1}
+    array set ::regions {HB/BE 1 HB/VS 1 HB/JU 1 HB0/LI 1 OE/TI 1 DL/BW 1}
+    array set ::refs    {HB/BE-001 1 HB/BE-003 1 HB/BE-013 1 HB/VS-001 1 OE/TI-437 1}
+    array set ::summits {
+        HB/VS-001,name Dufourspitze HB/VS-001,alt 4633 HB/VS-001,pts 10
+        HB/BE-003,name Eiger        HB/BE-003,alt 3967 HB/BE-003,pts 10
+    }
+}
+
+# Builds the S2S dialog without entering its modal loop.
+proc sotalogtest::startS2sDialog {} {
+    if {[lsearch -exact [font names] sotabig] < 0} { createFonts }
+    s2sWidgets
+    wm withdraw .s2s
+}
+
+# Runs one entry validation the way Tk would.
+#
+# Tk suppresses re-entrant validation while a validatecommand is running, so a
+# direct call has to do the same: the validators insert into the widget
+# themselves, which would otherwise trigger validation again and recurse.
+proc sotalogtest::typeInto {entry command char} {
+    $entry configure -validate none
+    set result [$command all 1 $char key [$entry get]]
+    $entry configure -validate all
+    return $result
+}
+
+# The same, for a deletion: %d is 0 and %P is the value the entry would have.
+proc sotalogtest::deleteFrom {entry command remaining} {
+    $entry configure -validate none
+    set result [$command all 0 "" key $remaining]
+    $entry configure -validate all
+    return $result
+}
+
+proc sotalogtest::suggestions {} {
+    return [string trim [.s2s.suggest get 1.0 end]]
+}
