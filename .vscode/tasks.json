@@ -95,6 +95,22 @@
             "problemMatcher": []
         },
         {
+            "label": "Build SOTALog.exe",
+            "detail": "Wrap the application into a Windows starpack with sdx",
+            "type": "process",
+            "command": "tclsh",
+            "windows": {
+                "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
+            },
+            "args": ["wrap.tcl"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Build sotalog.tcl",
             "detail": "Concatenate src/ into the single file the starkit wrap expects",
             "type": "process",

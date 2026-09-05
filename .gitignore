@@ -1,6 +1,7 @@
 # Build output: build.tcl concatenates src/ into this file, and the starkit
 # wrap turns it into the executable.  Both are generated - never edit them.
 /sotalog.tcl
+/SOTALog.vfs/lib/SOTALog/sotalog.tcl
 /SOTALog
 /SOTALog.exe
 /SOTALog-*.app/

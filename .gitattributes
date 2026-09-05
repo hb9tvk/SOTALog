@@ -16,5 +16,7 @@ sotacalls.txt -text
 names.txt     -text
 kx3.ini       -text
 
+*.exe  binary
+*.kit  binary
 *.ico  binary
 *.icns binary

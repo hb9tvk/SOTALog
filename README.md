@@ -114,19 +114,25 @@ tclsh build.tcl        # or ./make.sh, which just calls it
 
 ### Windows executable
 
-The current Windows build wraps that file into a starkit with tclkit and sdx:
-
 ```
-copy /Y sotalog.tcl SOTALog.vfs\lib\SOTALog\sotalog.tcl
-del SOTALog.exe
-C:\Tcl\bin\tclkit-win32.upx.exe c:\Tcl\bin\sdx.kit wrap SOTALog -writable -runtime c:\Tcl\bin\tclkit.exe
-ren SOTALog SOTALog.exe
+tclsh wrap.tcl
 ```
 
-**`SOTALog.vfs/` is not yet in this repository**, and the tclkit and sdx tools
-are assumed to be at a hardcoded `C:\Tcl\bin`, so a clean checkout cannot
-currently produce an executable. Making this reproducible is the next piece of
-work.
+One command, no hardcoded paths: it builds `sotalog.tcl`, copies it into
+`SOTALog.vfs/lib/SOTALog/`, and wraps the tree into a starpack with sdx. In VS
+Code this is the **Build SOTALog.exe** task. Everything it needs is committed —
+the VFS and the tools in [`tools/tclkit/`](tools/tclkit/), whose README says
+what each binary is for and where the runtime came from.
+
+The VFS holds the starkit bootstrap, the package index, the icons sdx applies
+to the executable, and a vestigial `http1.0` that the runtime shadows with its
+own newer `http`. The data files are not inside it: `main.tcl` resolves them
+relative to the executable, so `names.txt`, `sotacalls.txt`, `summits.thm` and
+the optional `kx3.ini` sit beside `SOTALog.exe`.
+
+The shipped runtime is Tcl/Tk **8.6.3**. It was 8.4.13 until 2026 — see
+[`tools/tclkit/README.md`](tools/tclkit/README.md) for why it moved, and note
+that the 8.4 kit is still needed at build time to host sdx.
 
 ### macOS application
 
