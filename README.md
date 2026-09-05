@@ -15,7 +15,7 @@ launcher and the build read it, so the two cannot drift apart.
 | --- | --- |
 | `init.tcl` | version, fonts, modal helper, loading of `names.txt` / `sotacalls.txt` |
 | `log.tcl` | `logMsg` diagnostics |
-| `io.tcl` | reading and writing the CSV log and the ADIF export |
+| `io.tcl` | the QSO record, the CSV and ADIF formats, and the log files |
 | `config.tcl` | configuration file and the configuration dialog |
 | `kx3.tcl` | serial band polling from an Elecraft KX3 |
 | `refentry.tcl` | the opening "enter SOTA ref" dialog |

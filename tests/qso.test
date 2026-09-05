@@ -1,0 +1,117 @@
+# The QSO formats on their own.
+#
+# formatQsoCsv, formatQsoAdif and parseQsoCsv take and return dictionaries, so
+# unlike the tests in logformat.test these need no window, no globals and no
+# files - which is the point of having extracted them.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+
+# A QSO with everything filled in; override single keys per test.
+proc qso {args} {
+    return [dict merge [dict create \
+        utc 1205 date 05/09/2025 adifdate 20250905 \
+        call HB9XYZ rsts 599 rstr 579 rem "" s2s "" \
+        band 40m freq 7.0MHz mode CW mycall HB9TVK/P ref HB/BE-003] $args]
+}
+
+test csv-basic {both reports, no remark} -body {
+    formatQsoCsv [qso]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579"}
+
+test csv-remark {the operator's remark follows the reports} -body {
+    formatQsoCsv [qso rem "nice sig"]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579 nice sig"}
+
+test csv-s2s {a summit-to-summit lands in its own column and in the remark} -body {
+    formatQsoCsv [qso s2s HB/VS-001]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,HB/VS-001,"RSTS:599 RSTR:579 S2S:HB/VS-001"}
+
+test csv-no-reports {a QSO with nothing but a call} -body {
+    formatQsoCsv [qso rsts "" rstr ""]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,""}
+
+test csv-ssb {two-character SSB reports} -body {
+    formatQsoCsv [qso mode SSB rsts 59 rstr 57 freq 14.0MHz band 20m]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,14.0MHz,SSB,HB9XYZ,,"RSTS:59 RSTR:57"}
+
+test csv-no-stray-spaces {no field picks up a stray space} -body {
+    # A continuation inside a quoted string would silently add one, and the
+    # record has to survive being split on commas.
+    set fields [split [formatQsoCsv [qso]] ,]
+    list [llength $fields] [lindex $fields 3] [lindex $fields 6]
+} -result {10 05/09/2025 CW}
+
+test adif-basic {a complete ADIF record} -body {
+    formatQsoAdif [qso]
+} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>579 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
+test adif-no-reports {absent reports are left out, not written with a false length} -body {
+    formatQsoAdif [qso rsts "" rstr ""]
+} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
+test adif-one-report {only the report that exists is written} -body {
+    formatQsoAdif [qso rstr ""]
+} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
+test adif-comment {summit, S2S and remark all share the comment field} -body {
+    set r [formatQsoAdif [qso s2s HB/VS-001 rem "windy"]]
+    regexp {<comment_intl:(\d+)>(.*) <eor>} $r -> len text
+    # Assert the invariant rather than a magic number: the declared length has
+    # to match the content, which is the whole point of the earlier fix.
+    list [expr {$len == [string length $text]}] $text
+} -result {1 {SOTA HB/BE-003 S2S with HB/VS-001 Remark: windy}}
+
+test adif-band-uppercased {the wavelength is upper-cased for ADIF} -body {
+    set r [formatQsoAdif [qso band 30m freq 10.1MHz]]
+    regexp {<band:(\d+)>(\S+)} $r -> len text
+    list $len $text
+} -result {3 30M}
+
+test parse-full {a line with reports and a remark comes apart again} -body {
+    set q [parseQsoCsv {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579 nice sig"}]
+    list [dict get $q call] [dict get $q rsts] [dict get $q rstr] [dict get $q rem] [dict get $q freq]
+} -result {HB9XYZ 599 579 {nice sig} 7.0MHz}
+
+test parse-no-remark {reports survive when no remark follows them} -body {
+    set q [parseQsoCsv {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579"}]
+    list [dict get $q rsts] [dict get $q rstr] [dict get $q rem]
+} -result {599 579 {}}
+
+test parse-empty-remark {an empty remark column yields empty reports} -body {
+    set q [parseQsoCsv {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,G0XYZ,,""}]
+    list [dict get $q call] [dict get $q rsts] [dict get $q rstr] [dict get $q rem]
+} -result {G0XYZ {} {} {}}
+
+test parse-ssb {two-character reports are recovered} -body {
+    set q [parseQsoCsv {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,14.0MHz,SSB,HB9XYZ,,"RSTS:59 RSTR:57"}]
+    list [dict get $q rsts] [dict get $q rstr] [dict get $q mode]
+} -result {59 57 SSB}
+
+test roundtrip {format then parse returns what went in} -body {
+    set original [qso rem "nice sig"]
+    set back [parseQsoCsv [formatQsoCsv $original]]
+    set differences {}
+    foreach key {mycall ref date utc freq mode call s2s rsts rstr rem} {
+        if {[dict get $original $key] ne [dict get $back $key]} {
+            lappend differences $key
+        }
+    }
+    set differences
+} -result {}
+
+test roundtrip-s2s-keeps-its-prefix {the S2S prefix stays in the remark on the way back
+    formatQsoCsv writes the reference both into its own column and into the
+    remark, and parseQsoCsv only strips the reports, so the remark returns
+    with "S2S:..." still on the front.  This is why a reloaded log shows the
+    reference in its remark column.  Recorded rather than changed: the CSV
+    files already written all look like this.
+} -body {
+    set back [parseQsoCsv [formatQsoCsv [qso s2s HB/VS-001 rem "windy"]]]
+    list [dict get $back s2s] [dict get $back rem]
+} -result {HB/VS-001 {S2S:HB/VS-001 windy}}
+
+removeSandboxes
+cleanupTests
