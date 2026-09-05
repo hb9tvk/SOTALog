@@ -1,22 +1,19 @@
 
+# The base call is the longest slash-separated part of a callsign: a prefix
+# like DL/ and a suffix like /P or /QRP are both shorter than the call itself.
+# Where two parts are the same length the later one wins, which is what the
+# old one-slash branch did.
+#
+# This replaces three separate branches, one of which was wrong: for two
+# slashes the old code always returned the middle part, which is right for
+# DL/HB9TVK/P but gave "P" for HB9TVK/P/QRP.  Calls with more than two slashes
+# were previously returned unchanged.
 proc getBasecall {call} {
-    set numSlash [regexp -all / $call]
-    if {$numSlash == 0} {
-        return $call
+    set base ""
+    foreach part [split $call /] {
+        if {[string length $part] >= [string length $base]} { set base $part }
     }
-    if {$numSlash == 1} {
-        regexp "^(.*)/(.*)" $call - first last
-        if {[string length $first] > [string length $last]} {
-            return $first
-        } else {
-            return $last
-        }
-    }
-    if {$numSlash == 2} {
-        regexp "^.+/(.+)/" $call - basecall
-        return $basecall
-    }
-    return $call
+    return $base
 }
 
 proc processUTC {validation action new vaction newval} {

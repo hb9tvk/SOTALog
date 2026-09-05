@@ -25,13 +25,17 @@ test basecall-prefix-and-suffix {prefix/base/suffix yields the middle} -body {
     list [getBasecall DL/HB9TVK/P] [getBasecall G/M0ABC/P]
 } -result {HB9TVK M0ABC}
 
-test basecall-two-suffixes-BUG {base/suffix/suffix picks the wrong element
-    "HB9TVK/P/QRP" should give HB9TVK, but the two-slash branch anchors on the
-    first slash and returns the suffix instead.  Pinned as-is; fixing it is a
-    separate, deliberate change.
-} -body {
+test basecall-two-suffixes {base/suffix/suffix yields the base call} -body {
     getBasecall HB9TVK/P/QRP
-} -result P
+} -result HB9TVK
+
+test basecall-many-slashes {more than two slashes still yields the longest part} -body {
+    list [getBasecall DL/HB9TVK/P/QRP] [getBasecall HB9TVK/QRP/P/M]
+} -result {HB9TVK HB9TVK}
+
+test basecall-degenerate {trailing slashes and empty input do not confuse it} -body {
+    list [getBasecall HB9TVK/] [getBasecall /HB9TVK] [getBasecall ""]
+} -result {HB9TVK HB9TVK {}}
 
 test bandswitch-up {stepping up runs through the bands and wraps} -setup {
     set ::band 40m
