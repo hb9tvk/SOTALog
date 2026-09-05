@@ -51,15 +51,42 @@ test map-keys-are-five-characters {the keys match what kx3band reads off the por
     lsort $wrong
 } -result {}
 
-test six-metres-is-not-in-the-band-list-BUG {BN10 maps to a band the log cannot use
-    The KX3 can report 6m, but the band list has 60m in its place, so the band
-    becomes " 6m" - with a leading space - and logging the next QSO fails with
-    "invalid command name .bandmap.l 6m".  Pinned as it stands: what should
-    happen on 6m is a decision about the application, not a typo.
+test every-mapped-band-is-usable {the map never names a band the log cannot use
+    The other direction of the same check.  BN10, which the radio sends for
+    6m, is deliberately not in the map: 6m is not in the band list, and adding
+    it would mean a ninth row in the band panel and a taller window.
 } -body {
-    set key "BN10;"
-    set band $::sotalog::kx32b($key)
-    list $band [lsearch -exact [wavelengths] $band]
-} -result {{ 6m} -1}
+    set unusable {}
+    foreach band [mappedBands] {
+        if {[lsearch -exact [wavelengths] $band] < 0} { lappend unusable "|$band|" }
+    }
+    set unusable
+} -result {}
 
+test unknown-reply-leaves-the-band-alone {a band the map does not cover is ignored
+    This is what makes dropping BN10 safe: kx3band checks before it assigns,
+    so switching the radio to 6m leaves the band where the operator put it
+    rather than setting one nothing else knows.  Driven through a file
+    standing in for the serial port.
+} -setup {
+    set dir [sandbox]
+    set path [file join $dir reply]
+} -body {
+    set results {}
+    foreach {reply expected} {BN04; 30m BN10; 40m} {
+        set fh [open $path w]
+        fconfigure $fh -translation binary
+        puts -nonewline $fh $reply
+        close $fh
+
+        set ::sotalog::band 40m
+        set ::sotalog::serial [open $path r]
+        kx3band
+        close $::sotalog::serial
+        lappend results $::sotalog::band
+    }
+    set results
+} -result {30m 40m}
+
+removeSandboxes
 cleanupTests

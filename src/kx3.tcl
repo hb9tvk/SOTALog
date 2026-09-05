@@ -2,6 +2,11 @@ namespace eval ::sotalog {
     # The band the radio reports, from its BN; query, mapped to the wavelength
     # the log uses.  The reply is five characters, so the keys include the
     # terminating semicolon.
+    #
+    # BN10, which the radio sends for 6m, is deliberately absent: 6m is not in
+    # the band list, and adding it would mean a ninth row in the band panel
+    # and a taller window.  kx3band ignores a reply it does not recognise, so
+    # switching the radio to 6m simply leaves the band where it was.
     variable kx3bands [list \
         BN02\; 60m \
         BN03\; 40m \
@@ -10,8 +15,7 @@ namespace eval ::sotalog {
         BN06\; 17m \
         BN07\; 15m \
         BN08\; 12m \
-        BN09\; 10m \
-        BN10\; " 6m"]
+        BN09\; 10m]
     variable kx32b
     array set kx32b $kx3bands
 }

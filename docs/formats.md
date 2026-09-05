@@ -152,20 +152,19 @@ the port at 38400,n,8,1 and polls the radio once a second with the Elecraft
 
 | reply | band | reply | band |
 | --- | --- | --- | --- |
-| `BN02;` | 60m | `BN07;` | 15m |
-| `BN03;` | 40m | `BN08;` | 12m |
-| `BN04;` | 30m | `BN09;` | 10m |
-| `BN05;` | 20m | `BN10;` | 6m |
-| `BN06;` | 17m | | |
+| `BN02;` | 60m | `BN06;` | 17m |
+| `BN03;` | 40m | `BN07;` | 15m |
+| `BN04;` | 30m | `BN08;` | 12m |
+| `BN05;` | 20m | `BN09;` | 10m |
 
-Every band in the band list has a command, and `tests/bands.test` checks that
-the two stay in step — they are declared in different files and have drifted
-apart before.
+Every band in the band list has a command and every command names a band the
+log can use. `tests/bands.test` checks both directions, because the two are
+declared in different files — the list in `src/main.tcl`, the map in
+`src/kx3.tcl` — and drifted apart once before.
 
-**`BN10;` is the one that does not fit.** It maps to `" 6m"` — with a leading
-space — and 6m is not in the band list, which has 60m in its place. Commit
-4930184, "replaced 6m by 60m", changed the list and left this map alone. If
-the radio is switched to 6m the band becomes a value nothing else knows, and
-logging the next QSO fails with `invalid command name ".bandmap.l 6m"`.
-Reachable only with a KX3 attached and 6m selected, which is presumably why it
-has gone unnoticed.
+**6m is deliberately absent.** The radio sends `BN10;` for it, but 6m is not
+in the band list, and adding it would mean a ninth row in the band panel and a
+taller window. `kx3band` checks the map before assigning, so a radio switched
+to 6m simply leaves the band where the operator put it. Commit 4930184,
+"replaced 6m by 60m", had left the map pointing at a band the list no longer
+had, which made the next QSO fail to log; that is what this resolves.

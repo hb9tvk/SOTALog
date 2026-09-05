@@ -102,9 +102,6 @@ Recorded in [docs/formats.md](docs/formats.md), and worth knowing before
 - The CSV has no escaping; a comma keystroke clears the entry fields, which is
   what keeps commas out of it.
 - Reloading a log leaves `S2S:` at the front of the remark.
-- `BN10;` from a KX3 sets the band to `" 6m"`, which is not in the band list,
-  and the next QSO then fails to log. Every other band, 60m included, maps
-  correctly.
 - `sotacalls.txt` upstream is serving an empty file; the download guard keeps
   the local copy.
 - SOTA's API terms forbid AI-generated software connecting to their API
