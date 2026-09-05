@@ -47,16 +47,33 @@ proc saveRef {} {
     if {![regexp {\-} $ref]} {
         regsub {([0-9]+)$} $ref -& ref
     }
-    set fh [open [file join $cwd summits.thm] r]
-    array set summits [gets $fh]
-    array set refs [gets $fh]
-    array set assocs [gets $fh]
-    array set regions [gets $fh]
-    close $fh
+    loadSummits
     if {![info exists summits(${ref},name)]} {
         tk_messageBox -icon error -message "Unknown SOTA REF" -type ok
         return
     }
     set enteredRef 1
     destroy .ref
+}
+
+# The summit database: four Tcl array dumps, one per line - the summits
+# themselves keyed "<ref>,name", "<ref>,alt" and "<ref>,pts", then the sets of
+# references, associations and regions.
+#
+# Read as ISO-8859-1, which is what the file actually is.  It used to be read
+# in whatever the system encoding happened to be, which is cp1252 on Windows
+# but UTF-8 elsewhere and under Tcl 9 - and a single 0xC9 byte is not valid
+# UTF-8, so every accented summit name came back as replacement characters.
+# ISO-8859-1 is also the only encoding whose 256 values map one-to-one onto
+# bytes, so nothing can be substituted or lost on the way in or out.
+proc loadSummits {} {
+    global summits refs assocs regions cwd
+
+    set fh [open [file join $cwd summits.thm] r]
+    fconfigure $fh -encoding iso8859-1
+    array set summits [gets $fh]
+    array set refs    [gets $fh]
+    array set assocs  [gets $fh]
+    array set regions [gets $fh]
+    close $fh
 }

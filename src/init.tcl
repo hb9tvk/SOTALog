@@ -100,11 +100,16 @@ proc Show.Modal {win onclose} {
     return ${::Modal.Result}
 }
 
+# names.txt and sotacalls.txt are hand-maintained ASCII, but say so rather
+# than inheriting whatever the system encoding happens to be - that is exactly
+# how summits.thm came to be misread.  UTF-8 matches the log files and leaves
+# the current contents byte for byte identical.
 proc loadNames {} {
 
     global names cwd
 
     set fh [open [file join $cwd names.txt] r]
+    fconfigure $fh -encoding utf-8
     while {![eof $fh]} {
         gets $fh line
         set names([lindex $line 0]) [lrange $line 1 end]
@@ -117,6 +122,7 @@ proc loadSotaCalls {} {
     global sotacalls cwd
 
     set fh [open [file join $cwd sotacalls.txt] r]
+    fconfigure $fh -encoding utf-8
     set sotacalls [read $fh]
     close $fh
 }

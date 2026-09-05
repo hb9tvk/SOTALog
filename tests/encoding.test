@@ -1,0 +1,112 @@
+# Character handling in the summit database.
+#
+# summits.thm is ISO-8859-1.  It was written as ISO-8859-15, which differs in
+# eight byte positions - 0xB4 is an acute accent in one and a Z-caron in the
+# other - and since ISO-8859-15 has no acute accent at all, Tcl substituted a
+# question mark.  Every update corrupted the 22 Brazilian and Portuguese
+# summit names that use one.  It was then read back in whatever the system
+# encoding happened to be, which is cp1252 on Windows but UTF-8 elsewhere and
+# under Tcl 9, where a lone high byte is not valid UTF-8 at all.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+
+# Names carrying the characters that actually appear in the summit list: an
+# acute accent used as an apostrophe, and a spread of accented letters.
+set acute \u00b4
+set summitLine "PY1/MC-009,name {Serra do Olho d${acute}Agua}\
+F/AM-001,name {Barre des \u00c9crins}\
+HB/VS-001,name {Dufourspitze} OE/TI-437,name {Sch\u00f6nb\u00fchel}\
+LA/RL-274,name {\u00d8stre} PY1/MC-009,alt 1000 PY1/MC-009,pts 6"
+
+proc writeSummitsFile {dir line} {
+    set fh [open [file join $dir summits.thm] w]
+    fconfigure $fh -encoding iso8859-1 -translation lf
+    puts $fh $line
+    puts $fh {}
+    puts $fh {}
+    puts $fh {}
+    close $fh
+}
+
+proc fileBytes {path} {
+    set fh [open $path rb]
+    set data [read $fh]
+    close $fh
+    return $data
+}
+
+test write-keeps-the-acute-accent {writeDataFile must not substitute a question mark
+    This is the exact byte that was being lost: 0xB4, which ISO-8859-15 cannot
+    represent, so Tcl wrote 0x3F instead.
+} -setup {
+    set ::cwd [sandbox]
+} -body {
+    writeDataFile summits.thm "d${::acute}Agua"
+    set bytes [fileBytes [file join $::cwd summits.thm]]
+    # string match would read "?" as a wildcard, so look for it literally.
+    list [scan [string index $bytes 1] %c] [string first "?" $bytes]
+} -result {180 -1}
+
+test write-round-trips-every-byte {every ISO-8859-1 value survives a write} -setup {
+    set ::cwd [sandbox]
+} -body {
+    # Every byte that can appear in the file, except the newline puts adds.
+    set original ""
+    for {set i 32} {$i < 256} {incr i} { append original [format %c $i] }
+    writeDataFile summits.thm $original
+    set bytes [fileBytes [file join $::cwd summits.thm]]
+    set written [string range $bytes 0 end-1]  ;# drop the trailing newline
+    list [string length $written] [string equal $written $original]
+} -result {224 1}
+
+test read-decodes-accents {loadSummits returns the names, not replacement characters} -setup {
+    set ::cwd [sandbox]
+    writeSummitsFile $::cwd $::summitLine
+    array unset ::summits
+} -body {
+    loadSummits
+    list $::summits(PY1/MC-009,name) \
+         $::summits(F/AM-001,name) \
+         $::summits(OE/TI-437,name) \
+         $::summits(LA/RL-274,name)
+} -result [list "Serra do Olho d\u00b4Agua" "Barre des \u00c9crins" \
+                "Sch\u00f6nb\u00fchel" "\u00d8stre"]
+
+test read-names-its-encoding {loadSummits reads ISO-8859-1, not the system encoding
+    Bytes 0x80 to 0x9F are where ISO-8859-1 and cp1252 disagree: 0x92 is a C1
+    control character in one and a right single quotation mark in the other.
+    The real summit list contains none of them, but putting one in proves
+    which encoding was actually used.  Without an explicit -encoding the
+    reader follows the system, which is cp1252 on Windows, UTF-8 on Linux and
+    macOS, and UTF-8 under Tcl 9 - where a lone 0xB4 is not valid UTF-8 and
+    every accented summit name comes back as replacement characters.
+} -setup {
+    set ::cwd [sandbox]
+    set fh [open [file join $::cwd summits.thm] w]
+    fconfigure $fh -encoding iso8859-1 -translation lf
+    puts $fh "X/YZ-001,name {a\u0092b}"
+    puts $fh {}
+    puts $fh {}
+    puts $fh {}
+    close $fh
+    array unset ::summits
+} -body {
+    loadSummits
+    # 146 is 0x92 read as ISO-8859-1; cp1252 would give 8217.
+    scan [string index $::summits(X/YZ-001,name) 1] %c
+} -result 146
+
+test full-round-trip {a name written by the updater is read back unchanged} -setup {
+    set ::cwd [sandbox]
+    array unset ::summits
+} -body {
+    writeDataFile summits.thm "$::summitLine\n\n\n"
+    loadSummits
+    set ::summits(PY1/MC-009,name)
+} -result "Serra do Olho d\u00b4Agua"
+
+removeSandboxes
+cleanupTests

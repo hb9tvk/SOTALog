@@ -161,6 +161,26 @@ log history (`-height 5`) and the suggestion pane (`-height 4`) in
 small display would save roughly 44px and bring it under the line.  Not done,
 because the Raspberry Pi this targeted is not currently in service.
 
+## Character encodings
+
+Each data file is read and written in a named encoding rather than inheriting
+whatever the system encoding happens to be - which is cp1252 on Windows, UTF-8
+on Linux and macOS, and UTF-8 under Tcl 9.
+
+| file | encoding | why |
+| --- | --- | --- |
+| `summits.thm` | ISO-8859-1 | what the server sends. Its 256 values map one-to-one onto bytes, so the file round trips exactly |
+| `sotacalls.txt`, `names.txt` | UTF-8 | ASCII today, so this costs nothing and matches the log files |
+| `.csv`, `.adi` logs | UTF-8 | remarks may contain anything the operator types |
+
+This was worth being careful about: `summits.thm` used to be written as
+ISO-8859-15, which differs from ISO-8859-1 in eight byte positions. 0xB4 is an
+acute accent in one and a Z-caron in the other, and ISO-8859-15 has no acute
+accent at all, so Tcl substituted a question mark - quietly corrupting the 22
+Brazilian, Portuguese and Spanish summit names that use one on every update.
+It was then read back in the system encoding, so on any non-Windows machine
+every accented name became replacement characters.
+
 ## Versioning
 
 `SOTALOG_VERSION` at the top of [`src/init.tcl`](src/init.tcl) is the single

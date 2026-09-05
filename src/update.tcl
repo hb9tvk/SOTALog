@@ -16,11 +16,22 @@ array set updateMinBytes {
     sotacalls.txt 10000
 }
 
-# Encoding each file is written in.  Empty means the system default, which is
-# what the callsign list has always used.
+# Encoding each downloaded file is written in.
+#
+# summits.thm is ISO-8859-1 and must stay that way.  It used to be written as
+# ISO-8859-15, which differs from ISO-8859-1 in eight positions: 0xB4 is an
+# acute accent in one and a Z-caron in the other.  Tcl has no way to write an
+# acute accent in ISO-8859-15, so it substituted a question mark, and every
+# update quietly corrupted the 22 summit names that use one: "Serra do Olho
+# d?Agua", where the source data has an acute accent.  ISO-8859-1 is the only
+# encoding whose 256 values map one-to-one onto bytes, so the file now round
+# trips exactly.
+#
+# The callsign list is plain ASCII; UTF-8 matches the log files and leaves it
+# byte for byte the same.
 array set updateEncoding {
-    summits.thm   iso8859-15
-    sotacalls.txt {}
+    summits.thm   iso8859-1
+    sotacalls.txt utf-8
 }
 
 proc updateProgress {token total current} {
@@ -60,13 +71,21 @@ proc updateDataFile {name} {
     if {$size < $floor} {
         return "got $size bytes, expected at least $floor - keeping the local copy"
     }
+    return [writeDataFile $name $data]
+}
 
+# Installs one data file, in the encoding that file is kept in, through a
+# temporary name so an interrupted write cannot leave a partial file behind.
+# Returns an error message, or the empty string on success.
+proc writeDataFile {name data} {
+    global cwd updateEncoding
+
+    set target [file join $cwd $name]
     set tmp $target.new
+
     if {[catch {
         set fh [open $tmp w]
-        if {[string length $updateEncoding($name)]} {
-            fconfigure $fh -encoding $updateEncoding($name)
-        }
+        fconfigure $fh -encoding $updateEncoding($name) -translation lf
         puts $fh $data
         close $fh
         file rename -force $tmp $target
@@ -75,7 +94,7 @@ proc updateDataFile {name} {
         return "could not write $name: $msg"
     }
 
-    logMsg info "updated $name ($size bytes)"
+    logMsg info "updated $name ([string length $data] characters)"
     return ""
 }
 
