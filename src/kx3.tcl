@@ -1,6 +1,18 @@
 namespace eval ::sotalog {
-    set kx3bands [list BN03\; 40m BN04\; 30m BN05\; 20m BN06\; 17m BN07\; 15m \
-        BN08\; 12m BN09\; 10m BN10\; " 6m"]
+    # The band the radio reports, from its BN; query, mapped to the wavelength
+    # the log uses.  The reply is five characters, so the keys include the
+    # terminating semicolon.
+    variable kx3bands [list \
+        BN02\; 60m \
+        BN03\; 40m \
+        BN04\; 30m \
+        BN05\; 20m \
+        BN06\; 17m \
+        BN07\; 15m \
+        BN08\; 12m \
+        BN09\; 10m \
+        BN10\; " 6m"]
+    variable kx32b
     array set kx32b $kx3bands
 }
 

@@ -152,17 +152,20 @@ the port at 38400,n,8,1 and polls the radio once a second with the Elecraft
 
 | reply | band | reply | band |
 | --- | --- | --- | --- |
-| `BN03;` | 40m | `BN07;` | 15m |
-| `BN04;` | 30m | `BN08;` | 12m |
-| `BN05;` | 20m | `BN09;` | 10m |
-| `BN06;` | 17m | `BN10;` | 6m |
+| `BN02;` | 60m | `BN07;` | 15m |
+| `BN03;` | 40m | `BN08;` | 12m |
+| `BN04;` | 30m | `BN09;` | 10m |
+| `BN05;` | 20m | `BN10;` | 6m |
+| `BN06;` | 17m | | |
 
-**`BN10;` is a trap.** It maps to `" 6m"` — with a leading space — and 6m is
-not in the band list, which has 60m instead. Commit 4930184, "replaced 6m by
-60m", changed the band list and left this map alone. If the radio is switched
-to 6m the band becomes a value nothing else knows, and logging the next QSO
-fails with `invalid command name ".bandmap.l 6m"`. Reachable only with a KX3
-attached and 6m selected, which is presumably why it has gone unnoticed.
+Every band in the band list has a command, and `tests/bands.test` checks that
+the two stay in step — they are declared in different files and have drifted
+apart before.
 
-Conversely 60m, which *is* in the band list, has no KX3 mapping, so it can
-only be selected by hand.
+**`BN10;` is the one that does not fit.** It maps to `" 6m"` — with a leading
+space — and 6m is not in the band list, which has 60m in its place. Commit
+4930184, "replaced 6m by 60m", changed the list and left this map alone. If
+the radio is switched to 6m the band becomes a value nothing else knows, and
+logging the next QSO fails with `invalid command name ".bandmap.l 6m"`.
+Reachable only with a KX3 attached and 6m selected, which is presumably why it
+has gone unnoticed.

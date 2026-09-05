@@ -1,0 +1,65 @@
+# The band list and the KX3 band map have to agree.
+#
+# They are declared in different files - the list in src/main.tcl, the map in
+# src/kx3.tcl - and have drifted apart before: commit 4930184 replaced 6m with
+# 60m in the list and left the map alone, so a radio reporting 6m set the band
+# to a value nothing else knew.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+
+set ::sotalog::bandlist $::sotalogtest::bandlist
+
+# The wavelengths, without the frequencies they alternate with.
+proc wavelengths {} {
+    set bands {}
+    foreach {wl fq} $::sotalog::bandlist { lappend bands $wl }
+    return $bands
+}
+
+proc mappedBands {} {
+    set bands {}
+    foreach key [array names ::sotalog::kx32b] { lappend bands $::sotalog::kx32b($key) }
+    return [lsort -unique $bands]
+}
+
+test every-band-can-be-selected-by-radio {each band in the list has a KX3 command} -body {
+    set unmapped {}
+    foreach band [wavelengths] {
+        if {[lsearch -exact [mappedBands] $band] < 0} { lappend unmapped $band }
+    }
+    set unmapped
+} -result {}
+
+test sixty-metres-is-mapped {60m answers to BN02, the command the radio sends} -body {
+    # The key is held in a variable: a semicolon inside an array index would
+    # end the command.
+    set key "BN02;"
+    set ::sotalog::kx32b($key)
+} -result 60m
+
+test map-keys-are-five-characters {the keys match what kx3band reads off the port
+    kx3band reads exactly five characters, so every key has to be that long,
+    semicolon included.
+} -body {
+    set wrong {}
+    foreach key [array names ::sotalog::kx32b] {
+        if {[string length $key] != 5} { lappend wrong "$key ([string length $key])" }
+    }
+    lsort $wrong
+} -result {}
+
+test six-metres-is-not-in-the-band-list-BUG {BN10 maps to a band the log cannot use
+    The KX3 can report 6m, but the band list has 60m in its place, so the band
+    becomes " 6m" - with a leading space - and logging the next QSO fails with
+    "invalid command name .bandmap.l 6m".  Pinned as it stands: what should
+    happen on 6m is a decision about the application, not a typo.
+} -body {
+    set key "BN10;"
+    set band $::sotalog::kx32b($key)
+    list $band [lsearch -exact [wavelengths] $band]
+} -result {{ 6m} -1}
+
+cleanupTests
