@@ -1,4 +1,43 @@
 
+# Summit-to-summit entry.
+#
+# Three fields - association, region, summit number - each narrowing a list of
+# candidates as the operator types.  The candidates come from the set-like
+# arrays summits.thm provides: assocs is keyed "HB", regions "HB/BE", and refs
+# "HB/BE-003".  Each field shows only the part it is responsible for, so the
+# fixed prefix is stripped from what is displayed.
+
+# Replaces the suggestion pane, which is kept read-only between updates.
+proc showS2sSuggestions {matches} {
+    .s2s.suggest configure -state normal
+    .s2s.suggest delete 1.0 end
+    .s2s.suggest insert end $matches
+    .s2s.suggest configure -state disabled
+}
+
+# Red while what has been typed so far matches nothing known.
+proc markS2sField {entry matches} {
+    if {[string length $matches]} {
+        $entry configure -fg black
+    } else {
+        $entry configure -fg red
+    }
+}
+
+# The candidates for one field: keys of a set-like array matching the glob,
+# with the fixed prefix removed so the pane shows only what is being typed.
+# Both are shown, and the field is coloured unless no entry is given - the
+# focusin branches list candidates without passing judgement on the contents.
+proc s2sSuggest {arrayName pattern strip {entry ""}} {
+    upvar #0 $arrayName candidates
+
+    set matches [lsort [array names candidates -glob $pattern]]
+    if {$strip ne ""} { regsub -all $strip $matches "" matches }
+    showS2sSuggestions $matches
+    if {$entry ne ""} { markS2sField $entry $matches }
+    return $matches
+}
+
 proc saveS2s {} {
     global s2s summits
 
@@ -18,178 +57,112 @@ proc saveS2s {} {
 }
 
 proc validateNum {validation action new vaction newval} {
-    global assocs regions refs
     set curreg [.s2s.ass get]/[.s2s.reg get]
-    if {$vaction == "key" && $action == 1} {
-        if {$new == ","} { return 0 }
-        after idle [list .s2s.num configure -validate $validation]
 
-        if {![regexp {[0-9]} $new]} {
-            return 0
-        }
+    if {$vaction eq "key" && $action == 1} {
+        if {$new eq ","} { return 0 }
+        after idle [list .s2s.num configure -validate $validation]
+        if {![regexp {[0-9]} $new]} { return 0 }
 
         .s2s.num insert insert $new
-        set matches [lsort [array names refs -glob *${curreg}-*[.s2s.num get]*]]
-        regsub -all "${curreg}-" $matches "" matches
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
-        if {![string length $matches]} {
-            .s2s.num configure -fg red
-        } else {
-            .s2s.num configure -fg black
-        }        
+        s2sSuggest refs *${curreg}-*[.s2s.num get]* ${curreg}- .s2s.num
         return 1
     }
-    if {$vaction == "key" && $action == 0} {
-        set matches [lsort [array names refs -glob *${curreg}-*${newval}*]]
-        regsub -all "${curreg}-" $matches "" matches
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
-        if {![string length $matches]} {
-            .s2s.num configure -fg red
-        } else {
-            .s2s.num configure -fg black
-        }
+    if {$vaction eq "key" && $action == 0} {
+        s2sSuggest refs *${curreg}-*${newval}* ${curreg}- .s2s.num
         return 1
     }
-
-    if {$vaction == "focusin"} {
-        set matches [lsort [array names refs -glob ${curreg}-*[.s2s.num get]*]]
-        regsub -all "${curreg}-" $matches "" matches
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
+    if {$vaction eq "focusin"} {
+        # No leading star here, unlike the two branches above.  It makes no
+        # practical difference, because a reference never has anything before
+        # its region, but it is left as it was.
+        s2sSuggest refs ${curreg}-*[.s2s.num get]* ${curreg}-
     }
     return 1
 }
 
 proc validateReg {validation action new vaction newval} {
-    global assocs regions
+    global regions
+
     set curass [.s2s.ass get]
-    if {$vaction == "key" && $action == 1} {
-        if {$new == ","} { return 0 }
+
+    if {$vaction eq "key" && $action == 1} {
+        if {$new eq ","} { return 0 }
         after idle [list .s2s.reg configure -validate $validation]
-        if {$new == " " || $new == "-"} {
+        if {$new eq " " || $new eq "-"} {
             focus .s2s.num
             return 0
         }
-        if {![regexp {[A-Za-z0-9/]} $new]} {
-            return 0
-        }
+        if {![regexp {[A-Za-z0-9/]} $new]} { return 0 }
 
         .s2s.reg insert insert [string toupper $new]
-        set matches [lsort [array names regions -glob *${curass}/[.s2s.reg get]*]]
-        regsub -all "${curass}/" $matches "" matches
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
-        if {![string length $matches]} {
-            .s2s.reg configure -fg red
-        } else {
-            .s2s.reg configure -fg black
-        }
-        if {[string length [.s2s.reg get]] ==2} {
+        s2sSuggest regions *${curass}/[.s2s.reg get]* ${curass}/ .s2s.reg
+
+        # Every region code is two characters, so the second one finishes it.
+        if {[string length [.s2s.reg get]] == 2} {
             focus .s2s.num
             return 0
         }
-        
         return 1
     }
-    if {$vaction == "key" && $action == 0} {
-        set matches [lsort [array names regions -glob *${curass}/${newval}*]]
-        regsub -all "${curass}/" $matches "" matches
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
-        if {![string length $matches]} {
-            .s2s.reg configure -fg red
-        } else {
-            .s2s.reg configure -fg black
-        }
+    if {$vaction eq "key" && $action == 0} {
+        s2sSuggest regions *${curass}/${newval}* ${curass}/ .s2s.reg
         return 1
     }
-    if {$vaction == "focusout"} {
+    if {$vaction eq "focusout"} {
         if {![string length [array names regions -exact ${curass}/[.s2s.reg get]]]} {
             .s2s.reg configure -fg red
         }
     }
-    if {$vaction == "focusin"} {
-        set matches [lsort [array names regions -glob *${curass}/[.s2s.reg get]*]]
-        regsub -all "${curass}/" $matches "" matches
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
+    if {$vaction eq "focusin"} {
+        s2sSuggest regions *${curass}/[.s2s.reg get]* ${curass}/
     }
     return 1
 }
 
 proc validateAss {validation action new vaction newval} {
     global assocs
-    if {$vaction == "key" && $action == 1} {
-        if {$new == ","} { return 0 }
+
+    if {$vaction eq "key" && $action == 1} {
+        if {$new eq ","} { return 0 }
         after idle [list .s2s.ass configure -validate $validation]
-        if {$new == " " || $new == "/"} {
+        if {$new eq " " || $new eq "/"} {
             if {![string length [array names assocs -exact [.s2s.ass get]]]} {
                 .s2s.ass configure -fg red
             }
             focus .s2s.reg
             return 0
         }
-        if {![regexp {[A-Za-z0-9/]} $new]} {
-            return 0
-        }
+        if {![regexp {[A-Za-z0-9/]} $new]} { return 0 }
 
         .s2s.ass insert insert [string toupper $new]
-        set matches [lsort [array names assocs -glob *[.s2s.ass get]*]]
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
-        if {![string length $matches]} {
-            .s2s.ass configure -fg red
-        } else {
-            .s2s.ass configure -fg black
-        }
-        if {[string length [.s2s.ass get]] == 3}  {
+        # Nothing to strip: an association code is the whole key.
+        set matches [s2sSuggest assocs *[.s2s.ass get]* "" .s2s.ass]
+
+        # Three characters is the longest an association code gets.
+        if {[string length [.s2s.ass get]] == 3} {
             focus .s2s.reg
             return 0
         }
+        # Only one candidate left, so it is the answer: fill it in and move on.
         if {[llength $matches] == 1} {
-            .s2s.ass del 0 end
+            .s2s.ass delete 0 end
             .s2s.ass insert end $matches
             focus .s2s.reg
         }
         return 1
     }
-    if {$vaction == "key" && $action == 0} {
-        set matches [lsort [array names assocs -glob *${newval}*]]
-        .s2s.suggest configure -state normal
-        .s2s.suggest delete 1.0 end
-        .s2s.suggest insert end $matches
-        .s2s.suggest configure -state disabled
-        if {![string length $matches]} {
-            .s2s.ass configure -fg red
-        } else {
-            .s2s.ass configure -fg black
-        }
+    if {$vaction eq "key" && $action == 0} {
+        s2sSuggest assocs *${newval}* "" .s2s.ass
         return 1
     }
-    if {$vaction == "focusout"} {
+    if {$vaction eq "focusout"} {
         if {![string length [array names assocs -exact [.s2s.ass get]]]} {
             .s2s.ass configure -fg red
         }
     }
     return 1
 }
-
 # Builds the dialog and its bindings.  Kept separate from s2sDialog so that
 # the entry validation can be exercised without entering the modal loop.
 proc s2sWidgets {} {

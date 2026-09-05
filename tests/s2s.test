@@ -151,5 +151,32 @@ test save-unknown-summit {a well-formed reference that is not in the data is sti
     set ::s2s
 } -result HB/BE-999
 
+# The modal path itself: everything above drives the validators directly, so
+# these two cover s2sDialog opening, waiting, saving and tearing down.  The
+# dialog built at the top of this file has to go first, since there can only
+# be one .s2s at a time.
+
+test dialog-accept {accepting the dialog saves the reference and closes it} -setup {
+    destroy .s2s
+    set ::s2s ""
+} -body {
+    after 200 {
+        .s2s.ass configure -validate none; .s2s.ass insert 0 HB
+        .s2s.reg configure -validate none; .s2s.reg insert 0 VS
+        .s2s.num configure -validate none; .s2s.num insert 0 1
+        set ::Modal.Result 1
+    }
+    s2sDialog
+    list $::s2s [.sotalog.s2s cget -text] [winfo exists .s2s]
+} -result {HB/VS-001 {S2S: HB/VS-001 Dufourspitze / 10 Pts} 0}
+
+test dialog-cancel {cancelling leaves the reference alone and closes it} -setup {
+    set ::s2s HB/VS-001
+} -body {
+    after 200 { set ::Modal.Result 0 }
+    s2sDialog
+    list $::s2s [winfo exists .s2s]
+} -result {HB/VS-001 0}
+
 removeSandboxes
 cleanupTests
