@@ -4,6 +4,13 @@ Logging software for Summits On The Air (ham radio).
 
 See http://sota.hb9tvk.org/sotalog for details.
 
+## Documentation
+
+- [CLAUDE.md](CLAUDE.md) - orientation for working on the code: the commands,
+  the traps, and what has been left alone on purpose.
+- [docs/formats.md](docs/formats.md) - every file the application reads or
+  writes, field by field.
+
 ## Layout
 
 Everything the application defines - all 54 procedures and every variable -

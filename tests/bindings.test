@@ -92,5 +92,20 @@ test escape-clears-the-fields {Escape abandons what has been typed} -setup {
     list [.sotalog.call get] [.sotalog.rsts get]
 } -result {{} {}}
 
+test comma-clears-the-form {a comma clears rather than being typed
+    This is what keeps a comma out of the remark, and so out of the CSV, which
+    has no escaping: a remark containing one is silently truncated at it when
+    the log is read back.  Easy to send on a paddle, which is presumably why
+    it was chosen.
+} -setup {
+    setEntry .sotalog.call G0XYZ
+    setEntry .sotalog.rem "windy"
+    focus .sotalog.rem
+} -body {
+    event generate .sotalog.rem <comma>
+    update idletasks
+    list [.sotalog.rem get] [.sotalog.call get]
+} -result {{} {}}
+
 removeSandboxes
 cleanupTests
