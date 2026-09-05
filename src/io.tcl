@@ -100,8 +100,18 @@ proc saveLog {} {
     append ad "<call:[string length $call]>$call "
     append ad "<band:[string length [string trim $band]]>[string toupper [string trim $band]] "
     append ad "<mode:[string length $mode]>$mode "
-    append ad "<rst_sent:3>[.sotalog.rsts get] "
-    append ad "<rst_rcvd:3>[.sotalog.rstr get] "
+    # An ADIF field declares its own length, so it cannot be written with a
+    # fixed 3: an empty report produced "<rst_sent:3>" followed by nothing,
+    # which contradicts itself, and a two-character SSB report like 59 was
+    # declared as three.  Omit the field entirely when there is no report.
+    set adifRsts [string trim [.sotalog.rsts get]]
+    set adifRstr [string trim [.sotalog.rstr get]]
+    if {[string length $adifRsts]} {
+        append ad "<rst_sent:[string length $adifRsts]>$adifRsts "
+    }
+    if {[string length $adifRstr]} {
+        append ad "<rst_rcvd:[string length $adifRstr]>$adifRstr "
+    }
     append ad "<station_callsign:[string length $myCall]>$myCall "
     #append ad "<APP_DXKeeper_TEMP:[expr [string length $ref] + 5]>SOTA $ref <eor>"
     set comment "SOTA $ref"

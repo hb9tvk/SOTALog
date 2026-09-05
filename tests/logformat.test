@@ -48,13 +48,10 @@ test csv-bare {a QSO with no reports and no remark still logs the call} -body {
     lindex [split [string trim [readFile [file join $dir $::logfile]]] \n] 2
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,G0XYZ,,""}
 
-test adif-empty-rst-BUG {empty reports produce a malformed ADIF field
-    The record declares <rst_sent:3> and then supplies nothing, so the length
-    contradicts the content and a strict ADIF reader will mis-parse it.  The
-    field should be omitted when there is no report.  Pinned as-is.
-} -body {
+test adif-empty-rst {a QSO with no reports omits the report fields entirely} -body {
     lindex [split [string trim [readFile [file join $dir $::adif]]] \n] 2
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:5>G0XYZ <band:3>40M <mode:2>CW <rst_sent:3> <rst_rcvd:3> <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:5>G0XYZ <band:3>40M <mode:2>CW <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
 
 test empty-call-is-ignored {pressing Return on an empty call logs nothing} -body {
     set before [llength [split [string trim [readFile [file join $dir $::logfile]]] \n]]
@@ -97,6 +94,13 @@ test reload-drops-rstr-BUG {reloading loses the received report when there is no
     # $::box is newest-first; row 1 is the S2S QSO whose remark follows RSTR.
     list [string trim [lindex $::box 2]] [string trim [lindex $::box 1]]
 } -result {{1205   HB9XYZ              599       579       nice sig} {1205   DL1ABC              559       339       S2S:HB/VS-001}}
+
+# Logged last, because it adds a fourth QSO and the tests above count three.
+test adif-short-report {a two-character SSB report declares a length of two} -body {
+    logQso call PA0ABC rsts 59 rstr 57
+    lindex [split [string trim [readFile [file join $dir $::adif]]] \n] 3
+} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>PA0ABC <band:3>40M <mode:2>CW <rst_sent:2>59 <rst_rcvd:2>57 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
 
 # tcltest exits from cleanupTests with a zero status whatever happened, so
 # tools/test.tcl decides pass or fail by reading the summary line below.
