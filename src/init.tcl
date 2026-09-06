@@ -159,21 +159,58 @@ proc ::sotalog::fitToScreen {sw sh} {
     return [list $w $h]
 }
 
+# Keeps a window of the given size on a screen of the given size: shifts it
+# back inside if it would hang off the far edge, and never past the near one.
+proc ::sotalog::clampToScreen {position size screen} {
+    if {$position + $size > $screen} { set position [expr {$screen - $size}] }
+    if {$position < 0} { set position 0 }
+    return $position
+}
+
+# Runs a dialog modally, centred on the main window, and returns 1 if it was
+# accepted.
 proc ::sotalog::Show.Modal {win onclose} {
-    set ::sotalog::modalResult {}
-    array set options [list -onclose {} -destroy 0 -onclose $onclose ]
+    variable modalResult
+
+    set modalResult {}
     wm transient $win .
-    wm protocol $win WM_DELETE_WINDOW [list catch $options(-onclose) ::sotalog::modalResult]
-    set x [expr {([winfo width  .] - [winfo reqwidth  $win]) / 2 + [winfo rootx .]} - 150]
-    set y [expr {([winfo height .] - [winfo reqheight $win]) / 2 + [winfo rooty .]} - 20]
+    wm protocol $win WM_DELETE_WINDOW [list catch $onclose ::sotalog::modalResult]
+
+    # Let the geometry manager finish before measuring.  Without this the
+    # requested size is whatever it happened to be part way through building
+    # the dialog - about 200x200 for the configuration dialog - and centring
+    # on that puts the window somewhere arbitrary.  It used to land partly
+    # below the main window, which matters on a small screen.
+    update idletasks
+
+    set width [winfo reqwidth $win]
+    set height [winfo reqheight $win]
+
+    # wm geometry sets the position of the window frame, while winfo rootx
+    # reports the client area inside it.  Mixing the two puts the dialog out by
+    # the size of the title bar and border - 11 across and 45 down on Windows.
+    # Take the main window position from wm geometry, to match what is about to
+    # be set, and its size from winfo, which is the area the operator sees.
+    if {![regexp {\+(-?[0-9]+)\+(-?[0-9]+)$} [wm geometry .] -> mainX mainY]} {
+        set mainX [winfo rootx .]
+        set mainY [winfo rooty .]
+    }
+    set x [expr {$mainX + ([winfo width .] - $width) / 2}]
+    set y [expr {$mainY + ([winfo height .] - $height) / 2}]
+
+    # A dialog centred on the main window can still hang off the screen when
+    # the main window is itself near an edge.
+    set x [clampToScreen $x $width [winfo screenwidth $win]]
+    set y [clampToScreen $y $height [winfo screenheight $win]]
     wm geometry $win +$x+$y
+
     raise $win
     focus $win
     grab $win
     tkwait variable ::sotalog::modalResult
     grab release $win
-    if {$options(-destroy)} {destroy $win}
-    return ${::sotalog::modalResult}
+
+    return $modalResult
 }
 
 # names.txt and sotacalls.txt are hand-maintained ASCII, but say so rather

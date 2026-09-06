@@ -1,0 +1,85 @@
+# Where modal dialogs open.
+#
+# Show.Modal used to measure the dialog before the geometry manager had laid
+# it out, so it centred on a size the dialog never had - about 200x200 for the
+# configuration dialog, whatever it was part way through being built - and
+# then applied two fixed offsets on top.  The configuration dialog landed
+# partly below the main window, which matters on a small screen.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+
+test clamp-leaves-a-fitting-window-alone {a window already on screen is not moved} -body {
+    clampToScreen 100 200 1000
+} -result 100
+
+test clamp-pulls-back-from-the-far-edge {a window running off the right or bottom is pulled in} -body {
+    list [clampToScreen 900 200 1000] [clampToScreen 999 200 1000]
+} -result {800 800}
+
+test clamp-never-goes-negative {a window larger than the screen starts at the edge} -body {
+    list [clampToScreen -50 200 1000] [clampToScreen 100 2000 1000]
+} -result {0 0}
+
+# The rest needs a real, mapped main window to centre against.
+set dir [sandbox]
+freezeClock 1757073930
+startLogWindow $dir 0
+wm deiconify .
+update
+
+set ::sotalog::myCall HB9TVK/P
+set ::sotalog::utcDate 06/09/2026
+set ::sotalog::oneKeyReport 1
+set ::sotalog::updated 0
+set ::sotalog::cwd $dir
+
+# Opens the configuration dialog, records where it landed, and cancels it.
+proc dialogGeometry {} {
+    after 400 {
+        update idletasks
+        set ::placement [list \
+            [winfo rootx .cfg] [winfo rooty .cfg] \
+            [winfo reqwidth .cfg] [winfo reqheight .cfg]]
+        set ::sotalog::modalResult 0
+    }
+    configDialog
+    return $::placement
+}
+
+test dialog-is-centred-on-the-main-window {the dialog opens over the window it belongs to} -body {
+    lassign [dialogGeometry] x y w h
+    set mainCentreX [expr {[winfo rootx .] + [winfo width .] / 2}]
+    set mainCentreY [expr {[winfo rooty .] + [winfo height .] / 2}]
+    set dialogCentreX [expr {$x + $w / 2}]
+    set dialogCentreY [expr {$y + $h / 2}]
+    # Integer division can leave a pixel in it; anything more is a real offset.
+    list [expr {abs($dialogCentreX - $mainCentreX) <= 1}] \
+         [expr {abs($dialogCentreY - $mainCentreY) <= 1}]
+} -result {1 1}
+
+test dialog-fits-inside-the-main-window {and does not hang off any edge of it
+    The configuration dialog is smaller than the log window, so centring it
+    should leave it entirely within.  It used to sit 71 pixels below the
+    bottom.
+} -body {
+    lassign [dialogGeometry] x y w h
+    set outside {}
+    if {$x < [winfo rootx .]} { lappend outside left }
+    if {$y < [winfo rooty .]} { lappend outside top }
+    if {$x + $w > [winfo rootx .] + [winfo width .]} { lappend outside right }
+    if {$y + $h > [winfo rooty .] + [winfo height .]} { lappend outside bottom }
+    set outside
+} -result {}
+
+test dialog-stays-on-screen {and never leaves the screen} -body {
+    lassign [dialogGeometry] x y w h
+    list [expr {$x >= 0}] [expr {$y >= 0}] \
+         [expr {$x + $w <= [winfo screenwidth .]}] \
+         [expr {$y + $h <= [winfo screenheight .]}]
+} -result {1 1 1 1}
+
+removeSandboxes
+cleanupTests
