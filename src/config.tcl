@@ -2,7 +2,7 @@
 # The settings sotalog.conf may carry, in the order they are written.
 # Anything else in the file is ignored.
 namespace eval ::sotalog {
-    set configSettings {myCall oneKeyReport entryMode utcDate bands}
+    set configSettings {myCall oneKeyReport entryMode utcDate bands uiScale}
 }
 
 # Reads "set <name> <value>" lines and returns the settings it recognised.
@@ -78,6 +78,7 @@ proc ::sotalog::saveConfig {} {
     variable allBands
     variable bands
     variable bandSelected
+    variable uiScale
 
     if {[string length [.cfg.call get]]} {
         set myCall [.cfg.call get]
@@ -133,12 +134,15 @@ proc ::sotalog::loadConfig {} {
     variable utcDate
     variable bands
     variable defaultBands
+    variable uiScale
+    variable defaultUiScale
 
     set myCall HB9TVK/P
     set oneKeyReport 1
     set entryMode 0
     set utcDate [clock format [clock seconds] -format %d/%m/%Y]
     set bands $defaultBands
+    set uiScale $defaultUiScale
 
     set path [file join $cwd sotalog.conf]
     if {![file exists $path]} {
@@ -163,6 +167,7 @@ proc ::sotalog::loadConfig {} {
     # things rather than being a number or a string, and the panel is built
     # from it.
     set bands [normaliseBands $bands]
+    set uiScale [normaliseUiScale $uiScale]
 }
 
 proc ::sotalog::configDialog {} {
@@ -175,6 +180,9 @@ proc ::sotalog::configDialog {} {
     variable allBands
     variable bands
     variable bandSelected
+    variable uiScale
+    variable minUiScale
+    variable maxUiScale
 
     toplevel .cfg 
     wm title .cfg "Configuration"
@@ -184,6 +192,7 @@ proc ::sotalog::configDialog {} {
     
     set oldEmo $entryMode
     set oldBands $bands
+    set oldScale $uiScale
     set updated 0
 
     bind .cfg <Return> $ok
@@ -238,6 +247,14 @@ proc ::sotalog::configDialog {} {
         incr i
     }
     
+    # Everything in the log window is drawn from point-sized fonts, so one
+    # slider scales the lot.  It takes effect on restart, along with the band
+    # selection and the entry mode.
+    label .cfg.uiscaleLabel -text "Display size (%):" -font sotasmall
+    scale .cfg.uiscale -from $minUiScale -to $maxUiScale -resolution 10 \
+        -orient horizontal -length 200 -font sotasmall -takefocus 0 \
+        -variable ::sotalog::uiScale
+
     label .cfg.updateCallsAndSummits -text "Update summits, calls and names" -font sotasmall
     button .cfg.update -text Update -command ::sotalog::updateCallsAndSummits
     
@@ -255,10 +272,13 @@ proc ::sotalog::configDialog {} {
 
     grid .cfg.bands -row 4 -column 0 -columnspan 2 -sticky ew -padx 4 -pady 4
 
-    grid .cfg.updateCallsAndSummits -row 5 -column 0
-    grid .cfg.update -row 5 -column 1
-    grid .cfg.cancel -row 6 -column 0
-    grid .cfg.ok -row 6 -column 1
+    grid .cfg.uiscaleLabel -row 5 -column 0
+    grid .cfg.uiscale -row 5 -column 1 -sticky w
+
+    grid .cfg.updateCallsAndSummits -row 6 -column 0
+    grid .cfg.update -row 6 -column 1
+    grid .cfg.cancel -row 7 -column 0
+    grid .cfg.ok -row 7 -column 1
 	
     focus .cfg.call
 
@@ -266,7 +286,7 @@ proc ::sotalog::configDialog {} {
     
     if {$res} {
         saveConfig
-	if {$oldEmo != $entryMode || $oldBands ne $bands || $updated == 1} {
+	if {$oldEmo != $entryMode || $oldBands ne $bands || $oldScale != $uiScale || $updated == 1} {
 	    showMessage info "Restart needed" "SOTALog needs to be restarted for changes to be applied"
 	    exit 0
 	}

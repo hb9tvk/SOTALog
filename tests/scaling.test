@@ -1,0 +1,87 @@
+# Scaling the log window.
+#
+# Everything in that window is laid out from point-sized fonts, so multiplying
+# the fonts multiplies the window with them.  The window is built once per
+# interpreter, so this file scales first and then opens it.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+freezeClock 1757073930
+
+if {[lsearch -exact [font names] sotabig] < 0} { createFonts }
+
+# The sizes the application has always used, before anything scales them.
+set baseSizes {}
+foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} {
+    lappend baseSizes [font configure $f -size]
+}
+
+test fonts-scale-together {every font grows by the same factor} -body {
+    scaleFonts 2.0
+    set doubled {}
+    foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} {
+        lappend doubled [font configure $f -size]
+    }
+    set expected {}
+    foreach size $baseSizes { lappend expected [expr {$size * 2}] }
+    expr {$doubled eq $expected}
+} -result 1
+
+test fonts-have-a-floor {shrinking stops at a size that can still be read} -body {
+    scaleFonts 0.001
+    set floored {}
+    foreach f {sotahuge sotamono} { lappend floored [font configure $f -size] }
+    set floored
+} -result {6 6}
+
+test scaling-reports-whether-it-changed-anything {and says when there is nothing left to do} -body {
+    # Already at the floor from the test above.
+    scaleFonts 0.5
+} -result 0
+
+# Put the fonts back, scale to 150%, and open the window on that.
+test window-grows-with-the-fonts {the whole window scales, not just the text
+    150% of the sizes the application ships with should give a window about
+    half as large again.
+} -setup {
+    foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} size $baseSizes {
+        font configure $f -size $size
+    }
+} -body {
+    # Measured from the same layout at 100% and at 150%.
+    set dir [sandbox]
+    startLogWindow $dir 0
+    update idletasks
+    set normal [list [winfo reqwidth .] [winfo reqheight .]]
+
+    scaleFonts 1.5
+    update idletasks
+    set larger [list [winfo reqwidth .] [winfo reqheight .]]
+
+    lassign $normal nw nh
+    lassign $larger lw lh
+    # Not exactly 1.5: widget padding and borders are in pixels, not points.
+    list [expr {$lw > $nw * 1.35 && $lw < $nw * 1.65}] \
+         [expr {$lh > $nh * 1.35 && $lh < $nh * 1.65}]
+} -result {1 1}
+
+test screen-overrides-the-request {a size larger than the screen is pulled back
+    The slider says how large the operator wants the window; fitToScreen says
+    how large it can actually be.  The request is not a promise, and on a small
+    display the screen wins - which is what keeps the window usable on the
+    Raspberry Pi panel this ran on.
+} -body {
+    update idletasks
+    set requested [list [winfo reqwidth .] [winfo reqheight .]]
+
+    # Ask to fit a display far smaller than the scaled-up layout.
+    lassign [fitToScreen 800 480] w h
+
+    list [expr {$w <= 800}] [expr {$h <= 480}] \
+         [expr {[lindex $requested 0] > 800}]
+} -result {1 1 1}
+
+removeSandboxes
+cleanupTests

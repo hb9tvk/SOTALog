@@ -145,12 +145,25 @@ configuration that will not load.
     set entryMode 0
     set utcDate 05/09/2026
     set bands 60m 40m 30m 20m 17m 15m 12m 10m
+    set uiScale 100
 
 It looks like Tcl because it used to be `eval`ed, which meant a space or a
 bracket in a value could stop the application starting or be executed. It is
 now **parsed**: `set <name> <value>` lines and nothing else, values taken
 verbatim to the end of the line, unknown names logged and skipped. The format
 is unchanged, so existing files still load.
+
+`uiScale` is how large the log window is drawn, as a percentage of the size the
+application has always used, set with the slider in the configuration dialog.
+Everything in that window is laid out from point-sized fonts, so one number
+scales the lot. It ranges from 100 to 300 and only goes upwards: `fitToScreen`
+already shrinks the layout when it will not fit the display, and this is for an
+operator who needs it larger. A size outside that range, or one that is not a
+number, is pulled back. Changing it needs a restart.
+
+The request is not a promise. `fitToScreen` still caps the result at the size
+of the screen, so asking for 300% on a small display gives whatever actually
+fits.
 
 `bands` lists the wavelengths shown in the log window, chosen from the master
 table in `src/init.tcl` through the checkboxes in the configuration dialog.

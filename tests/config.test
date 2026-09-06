@@ -126,6 +126,7 @@ test save-writes-every-setting {saving produces one line per setting, in order} 
     set ::sotalog::entryMode 1
     set ::sotalog::utcDate 05/09/2026
     set ::sotalog::bands {40m 20m}
+    set ::sotalog::uiScale 150
     array unset ::sotalog::bandSelected
     setEntry .cfg.call HB9TVK/P
     setEntry .cfg.utcDate 05/09/2026
@@ -136,7 +137,8 @@ test save-writes-every-setting {saving produces one line per setting, in order} 
 set oneKeyReport 1
 set entryMode 1
 set utcDate 05/09/2026
-set bands 40m 20m"
+set bands 40m 20m
+set uiScale 150"
 
 test save-leaves-no-temp-file {the temporary file used for the atomic write is gone} -setup {
     set ::sotalog::cwd [sandbox]
@@ -225,6 +227,42 @@ test bands-roundtrip {what the dialog ticks survives a save and a load} -setup {
     set ::sotalog::bands
 } -result {160m 2m}
 
+# The display size.  Everything in the log window is drawn from point-sized
+# fonts, so one number scales the lot.
+
+test scale-clamps-to-the-range {a size outside what the slider offers is pulled in} -body {
+    list [normaliseUiScale 50] [normaliseUiScale 100] [normaliseUiScale 250] \
+         [normaliseUiScale 1000]
+} -result {100 100 250 300}
+
+test scale-rejects-nonsense {a size that is not a number falls back to normal} -body {
+    list [normaliseUiScale ""] [normaliseUiScale large] [normaliseUiScale 1.5]
+} -result {100 100 100}
+
+test scale-loads-from-config {a configured size reaches the setting} -setup {
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set myCall HB9TVK/P\nset uiScale 180\n"
+} -body {
+    loadConfig
+    set ::sotalog::uiScale
+} -result 180
+
+test scale-defaults-when-absent {a configuration without it stays at normal size} -setup {
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set myCall HB9TVK/P\n"
+} -body {
+    loadConfig
+    set ::sotalog::uiScale
+} -result 100
+
+test scale-out-of-range-in-config-is-clamped {and a hand-edited extreme is pulled back} -setup {
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set uiScale 5000\n"
+} -body {
+    loadConfig
+    set ::sotalog::uiScale
+} -result 300
+
 test dialog-offers-and-saves-bands {the dialog lists every band and keeps what is ticked
     Drives the real modal dialog.  exit and showMessage are stubbed because
     a band change asks for a restart, and configDialog carries that out by
@@ -235,6 +273,7 @@ test dialog-offers-and-saves-bands {the dialog lists every band and keeps what i
     set ::sotalog::myCall HB9TVK/P
     set ::sotalog::entryMode 0
     set ::sotalog::bands {40m 20m}
+    set ::sotalog::uiScale 100
     set ::restartRequested 0
     set ::bandButtons 0
     rename ::exit ::realExit
@@ -259,11 +298,13 @@ test dialog-offers-and-saves-bands {the dialog lists every band and keeps what i
             if {[winfo exists .cfg.bands.b$wavelength]} { incr ::bandButtons }
         }
         set ::sotalog::bandSelected(2m) 1
+        set ::sotalog::uiScale 150
+        set ::sliderExists [winfo exists .cfg.uiscale]
         set ::sotalog::modalResult 1
     }
     configDialog
-    list $::bandButtons $::sotalog::bands $::restartRequested
-} -result {15 {40m 20m 2m} 1}
+    list $::bandButtons $::sliderExists $::sotalog::bands $::sotalog::uiScale $::restartRequested
+} -result {15 1 {40m 20m 2m} 150 1}
 
 test dialog-cancel-keeps-the-selection {cancelling changes nothing} -setup {
     destroy .cfg

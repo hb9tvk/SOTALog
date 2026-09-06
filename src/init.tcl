@@ -58,6 +58,16 @@ namespace eval ::sotalog {
     # including under test, where main.tcl never runs.
     variable bands $defaultBands
 
+    # How large the log window is drawn, as a percentage of the size the
+    # application has always used.  Everything in that window is laid out from
+    # point-sized fonts, so scaling the fonts scales the window with them.
+    #
+    # Only upwards: fitToScreen already shrinks the layout when it will not fit
+    # the display, and this is for an operator who needs it larger.
+    variable defaultUiScale 100
+    variable minUiScale 100
+    variable maxUiScale 300
+    variable uiScale $defaultUiScale
     # The bands actually offered this session.  loadConfig replaces this with
     # whatever has been chosen; it is declared here so that it always exists,
     # including under test where main.tcl never runs.
@@ -108,6 +118,23 @@ proc ::sotalog::createFonts {} {
 # that the text stops being readable and shrinking further buys nothing.
 # Returns 1 if anything actually changed, 0 if every font was already at the
 # floor.
+# Keeps the display size within the range the slider offers, so that a
+# hand-edited configuration cannot produce a window nothing can read or a font
+# too large to lay out.
+proc ::sotalog::normaliseUiScale {requested} {
+    variable defaultUiScale
+    variable minUiScale
+    variable maxUiScale
+
+    if {![string is integer -strict $requested]} {
+        logMsg error "sotalog.conf has a display size that is not a number, ignored: $requested"
+        return $defaultUiScale
+    }
+    if {$requested < $minUiScale} { return $minUiScale }
+    if {$requested > $maxUiScale} { return $maxUiScale }
+    return $requested
+}
+
 proc ::sotalog::scaleFonts {factor} {
     set changed 0
     foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} {
