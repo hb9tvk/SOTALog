@@ -53,6 +53,16 @@ namespace eval ::sotalog {
     # offered before they became selectable.
     variable defaultBands [list 60m 40m 30m 20m 17m 15m 12m 10m]
 
+    # The bands actually offered this session.  loadConfig replaces this with
+    # whatever has been chosen; it is declared here so that it always exists,
+    # including under test, where main.tcl never runs.
+    variable bands $defaultBands
+
+    # The bands actually offered this session.  loadConfig replaces this with
+    # whatever has been chosen; it is declared here so that it always exists,
+    # including under test where main.tcl never runs.
+    variable bands 
+
     # Wavelength to frequency and back, over every band rather than only the
     # selected ones.  A log may hold QSOs on a band that is no longer shown,
     # and it still has to be read back and written out correctly.

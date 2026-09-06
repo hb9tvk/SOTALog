@@ -95,10 +95,6 @@ proc sotalogtest::startLogWindow {dir {entryModeOn 0}} {
     set ::sotalog::oneKeyReport 1
     set ::sotalog::box {}
     set ::sotalog::sinfo "Alt: 3967 Pts: 10"
-    # The band table itself lives in init.tcl, which loadModules sources, so
-    # only the selection has to be set here - main.tcl is not loaded under
-    # test and that is the only thing it decides.
-    set ::sotalog::bands $::sotalog::defaultBands
     array set ::sotalog::names {}
     set ::sotalog::sotacalls {}
 

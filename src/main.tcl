@@ -32,11 +32,6 @@ namespace eval ::sotalog {
 
     logMsg info "SOTALog $SOTALOG_VERSION starting, data directory: $cwd"
 
-    # The bands offered in this session.  The table they come from, and the
-    # frequency each maps to, live in init.tcl so that the tests see the same
-    # ones the application does.
-    variable bands $defaultBands
-
     variable s2s ""
     variable mode CW
 

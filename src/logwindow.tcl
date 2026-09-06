@@ -130,7 +130,13 @@ proc ::sotalog::logwindow {ref info} {
     wm geometry . +0+0
     update idletasks
 
-    set band 40m
+    # 40m is where an activation usually starts, but it need not be among the
+    # bands the operator has chosen to show, so fall back to the first that is.
+    if {[lsearch -exact $bands 40m] >= 0} {
+        set band 40m
+    } else {
+        set band [lindex $bands 0]
+    }
 
     bind . <Return> { ::sotalog::saveLog }
     bind . <Escape> { ::sotalog::clear }

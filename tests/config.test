@@ -119,12 +119,14 @@ test load-missing-file-opens-dialog {a first run with no file asks for one} -set
     set ::dialogOpened
 } -result 1
 
-test save-writes-every-setting {saving produces the four lines, in order} -setup {
+test save-writes-every-setting {saving produces one line per setting, in order} -setup {
     set ::sotalog::cwd [sandbox]
     set ::sotalog::myCall HB9TVK/P
     set ::sotalog::oneKeyReport 1
     set ::sotalog::entryMode 1
     set ::sotalog::utcDate 05/09/2026
+    set ::sotalog::bands {40m 20m}
+    array unset ::sotalog::bandSelected
     setEntry .cfg.call HB9TVK/P
     setEntry .cfg.utcDate 05/09/2026
 } -body {
@@ -133,7 +135,8 @@ test save-writes-every-setting {saving produces the four lines, in order} -setup
 } -result "set myCall HB9TVK/P
 set oneKeyReport 1
 set entryMode 1
-set utcDate 05/09/2026"
+set utcDate 05/09/2026
+set bands 40m 20m"
 
 test save-leaves-no-temp-file {the temporary file used for the atomic write is gone} -setup {
     set ::sotalog::cwd [sandbox]
@@ -161,6 +164,127 @@ test roundtrip {what saveConfig writes, loadConfig reads back} -setup {
     loadConfig
     list $::sotalog::myCall $::sotalog::oneKeyReport $::sotalog::entryMode $::sotalog::utcDate
 } -result {HB9XYZ/P 0 1 24/12/2026}
+
+# The band selection.  It is the one setting that names things rather than
+# being a number or a string, so it is the one that has to be checked.
+
+test bands-normalise-to-table-order {the selection comes back in master-table order} -body {
+    normaliseBands {10m 160m 40m}
+} -result {160m 40m 10m}
+
+test bands-unknown-are-dropped {a band the application does not know is ignored} -body {
+    normaliseBands {40m 11m 20m}
+} -result {40m 20m}
+
+test bands-empty-falls-back {an empty or entirely unknown selection uses the defaults} -body {
+    list [normaliseBands {}] [normaliseBands {11m 5m}]
+} -result [list $::sotalog::defaultBands $::sotalog::defaultBands]
+
+test bands-load-from-config {a configured selection reaches the band list} -setup {
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set myCall HB9TVK/P\nset bands 160m 40m 2m\n"
+} -body {
+    loadConfig
+    set ::sotalog::bands
+} -result {160m 40m 2m}
+
+test bands-load-defaults-when-absent {a configuration without the setting keeps the defaults} -setup {
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set myCall HB9TVK/P\n"
+} -body {
+    loadConfig
+    set ::sotalog::bands
+} -result [set ::sotalog::defaultBands]
+
+test bands-load-rejects-rubbish {an unusable selection falls back rather than emptying the panel} -setup {
+    set ::sotalog::cwd [sandbox]
+    writeConfig $::sotalog::cwd "set bands 11m nonsense\n"
+} -body {
+    loadConfig
+    set ::sotalog::bands
+} -result [set ::sotalog::defaultBands]
+
+test bands-roundtrip {what the dialog ticks survives a save and a load} -setup {
+    set ::sotalog::cwd [sandbox]
+    set ::sotalog::myCall HB9TVK/P
+    set ::sotalog::entryMode 0
+    array unset ::sotalog::bandSelected
+    # As the checkbuttons would leave it: 2m and 160m ticked, nothing else.
+    foreach {wavelength frequency} $::sotalog::allBands {
+        set ::sotalog::bandSelected($wavelength) 0
+    }
+    set ::sotalog::bandSelected(2m) 1
+    set ::sotalog::bandSelected(160m) 1
+    setEntry .cfg.call HB9TVK/P
+} -cleanup {
+    array unset ::sotalog::bandSelected
+} -body {
+    saveConfig
+    set ::sotalog::bands {}
+    loadConfig
+    set ::sotalog::bands
+} -result {160m 2m}
+
+test dialog-offers-and-saves-bands {the dialog lists every band and keeps what is ticked
+    Drives the real modal dialog.  exit and tk_messageBox are stubbed because
+    a band change asks for a restart, and configDialog carries that out by
+    calling exit - which would take the test run with it.
+} -setup {
+    destroy .cfg
+    set ::sotalog::cwd [sandbox]
+    set ::sotalog::myCall HB9TVK/P
+    set ::sotalog::entryMode 0
+    set ::sotalog::bands {40m 20m}
+    set ::restartRequested 0
+    set ::bandButtons 0
+    rename ::exit ::realExit
+    proc ::exit {args} { set ::restartRequested 1 }
+    rename ::tk_messageBox ::realMessageBox
+    proc ::tk_messageBox {args} { return ok }
+} -cleanup {
+    rename ::exit {}
+    rename ::realExit ::exit
+    rename ::tk_messageBox {}
+    rename ::realMessageBox ::tk_messageBox
+    array unset ::sotalog::bandSelected
+    # Put back the two fields the earlier tests drive saveConfig through.
+    destroy .cfg
+    toplevel .cfg
+    entry .cfg.call
+    entry .cfg.utcDate
+    wm withdraw .cfg
+} -body {
+    after 300 {
+        foreach {wavelength frequency} $::sotalog::allBands {
+            if {[winfo exists .cfg.bands.b$wavelength]} { incr ::bandButtons }
+        }
+        set ::sotalog::bandSelected(2m) 1
+        set ::sotalog::modalResult 1
+    }
+    configDialog
+    list $::bandButtons $::sotalog::bands $::restartRequested
+} -result {15 {40m 20m 2m} 1}
+
+test dialog-cancel-keeps-the-selection {cancelling changes nothing} -setup {
+    destroy .cfg
+    set ::sotalog::cwd [sandbox]
+    set ::sotalog::bands {40m 20m}
+    set ::sotalog::entryMode 0
+} -cleanup {
+    array unset ::sotalog::bandSelected
+    destroy .cfg
+    toplevel .cfg
+    entry .cfg.call
+    entry .cfg.utcDate
+    wm withdraw .cfg
+} -body {
+    after 300 {
+        set ::sotalog::bandSelected(2m) 1
+        set ::sotalog::modalResult 0
+    }
+    configDialog
+    set ::sotalog::bands
+} -result {40m 20m}
 
 removeSandboxes
 cleanupTests

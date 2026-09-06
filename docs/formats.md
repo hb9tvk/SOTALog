@@ -128,12 +128,20 @@ configuration that will not load.
     set oneKeyReport 1
     set entryMode 0
     set utcDate 05/09/2026
+    set bands 60m 40m 30m 20m 17m 15m 12m 10m
 
 It looks like Tcl because it used to be `eval`ed, which meant a space or a
 bracket in a value could stop the application starting or be executed. It is
 now **parsed**: `set <name> <value>` lines and nothing else, values taken
 verbatim to the end of the line, unknown names logged and skipped. The format
 is unchanged, so existing files still load.
+
+`bands` lists the wavelengths shown in the log window, chosen from the master
+table in `src/init.tcl` through the checkboxes in the configuration dialog.
+Names the application does not know are dropped with a warning, and a
+selection that ends up empty falls back to the eight bands offered before they
+became selectable. Changing it needs a restart, because the band panel is
+built once when the window opens.
 
 `oneKeyReport` turns the single-digit RST expansion on. `entryMode` turns on
 UTC entry, where the operator types the time and the date comes from

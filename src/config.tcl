@@ -2,7 +2,7 @@
 # The settings sotalog.conf may carry, in the order they are written.
 # Anything else in the file is ignored.
 namespace eval ::sotalog {
-    set configSettings {myCall oneKeyReport entryMode utcDate}
+    set configSettings {myCall oneKeyReport entryMode utcDate bands}
 }
 
 # Reads "set <name> <value>" lines and returns the settings it recognised.
@@ -41,6 +41,32 @@ proc ::sotalog::parseConfig {text} {
     return $settings
 }
 
+# Keeps only bands the application knows, in the order the master table lists
+# them, so that a hand-edited or older configuration cannot leave the band
+# panel holding something meaningless.  An empty result falls back to the
+# default selection: with no bands at all there is nothing to log on.
+proc ::sotalog::normaliseBands {requested} {
+    variable allBands
+    variable defaultBands
+
+    set chosen {}
+    foreach {wavelength frequency} $allBands {
+        if {[lsearch -exact $requested $wavelength] >= 0} { lappend chosen $wavelength }
+    }
+
+    foreach unknown $requested {
+        if {[lsearch -exact $chosen $unknown] < 0} {
+            logMsg error "sotalog.conf names an unknown band, ignored: $unknown"
+        }
+    }
+
+    if {![llength $chosen]} {
+        logMsg error "no usable band in the configuration, falling back to the default selection"
+        return $defaultBands
+    }
+    return $chosen
+}
+
 proc ::sotalog::saveConfig {} {
 
     variable myCall
@@ -49,12 +75,35 @@ proc ::sotalog::saveConfig {} {
     variable utcDate
     variable cwd
     variable configSettings
+    variable allBands
+    variable bands
+    variable bandSelected
 
     if {[string length [.cfg.call get]]} {
         set myCall [.cfg.call get]
     }
     if {$entryMode} {
 	set utcDate [.cfg.utcDate get]
+    }
+
+    # The band checkbuttons write into bandSelected; collect them back in the
+    # order the master table lists them.  Refusing an empty selection rather
+    # than silently substituting the defaults: with no bands there is nothing
+    # to log on, and quietly changing what was ticked would be worse than
+    # saying so.
+    if {[array exists bandSelected]} {
+        set chosen {}
+        foreach {wavelength frequency} $allBands {
+            if {[info exists bandSelected($wavelength)] && $bandSelected($wavelength)} {
+                lappend chosen $wavelength
+            }
+        }
+        if {[llength $chosen]} {
+            set bands $chosen
+        } else {
+            tk_messageBox -icon warning -type ok -message \
+                "At least one band has to be selected.\nThe previous selection has been kept."
+        }
     }
 
     # Written to a temporary file and renamed, so that a crash or a flat
@@ -82,11 +131,14 @@ proc ::sotalog::loadConfig {} {
     variable entryMode
     variable cwd
     variable utcDate
+    variable bands
+    variable defaultBands
 
     set myCall HB9TVK/P
     set oneKeyReport 1
     set entryMode 0
     set utcDate [clock format [clock seconds] -format %d/%m/%Y]
+    set bands $defaultBands
 
     set path [file join $cwd sotalog.conf]
     if {![file exists $path]} {
@@ -106,6 +158,11 @@ proc ::sotalog::loadConfig {} {
     dict for {name value} [parseConfig $text] {
         set $name $value
     }
+
+    # The band selection is the one setting that has to be checked: it names
+    # things rather than being a number or a string, and the panel is built
+    # from it.
+    set bands [normaliseBands $bands]
 }
 
 proc ::sotalog::configDialog {} {
@@ -115,7 +172,10 @@ proc ::sotalog::configDialog {} {
     variable entryMode
     variable updated
     variable utcDate
-   
+    variable allBands
+    variable bands
+    variable bandSelected
+
     toplevel .cfg 
     wm title .cfg "Configuration"
     
@@ -123,6 +183,7 @@ proc ::sotalog::configDialog {} {
     set cancel {set ::sotalog::modalResult 0}
     
     set oldEmo $entryMode
+    set oldBands $bands
     set updated 0
 
     bind .cfg <Return> $ok
@@ -161,6 +222,21 @@ proc ::sotalog::configDialog {} {
     if {! $entryMode} {
 	.cfg.utcDate configure -state disabled
     }
+
+    # Which bands get a button in the log window.  Laid out five to a row so
+    # that fifteen of them do not make the dialog taller than the screen the
+    # application is likely to be running on.
+    labelframe .cfg.bands -text "Bands shown in the log window" -font sotasmall
+    array unset bandSelected
+    set i 0
+    foreach {wavelength frequency} $allBands {
+        set bandSelected($wavelength) \
+            [expr {[lsearch -exact $bands $wavelength] >= 0}]
+        checkbutton .cfg.bands.b$wavelength -text $wavelength -font sotasmall \
+            -variable ::sotalog::bandSelected($wavelength) -takefocus 0
+        grid .cfg.bands.b$wavelength -row [expr {$i / 5}] -column [expr {$i % 5}] -sticky w
+        incr i
+    }
     
     label .cfg.updateCallsAndSummits -text "Update calls and summits" -font sotasmall
     button .cfg.update -text Update -command ::sotalog::updateCallsAndSummits
@@ -177,10 +253,12 @@ proc ::sotalog::configDialog {} {
     grid .cfg.utcDateLabel -row 3 -column 0
     grid .cfg.utcDate -row 3 -column 1
 
-    grid .cfg.updateCallsAndSummits -row 4 -column 0
-    grid .cfg.update -row 4 -column 1
-    grid .cfg.cancel -row 5 -column 0
-    grid .cfg.ok -row 5 -column 1
+    grid .cfg.bands -row 4 -column 0 -columnspan 2 -sticky ew -padx 4 -pady 4
+
+    grid .cfg.updateCallsAndSummits -row 5 -column 0
+    grid .cfg.update -row 5 -column 1
+    grid .cfg.cancel -row 6 -column 0
+    grid .cfg.ok -row 6 -column 1
 	
     focus .cfg.call
 
@@ -188,7 +266,7 @@ proc ::sotalog::configDialog {} {
     
     if {$res} {
         saveConfig
-	if {$oldEmo != $entryMode || $updated == 1} {
+	if {$oldEmo != $entryMode || $oldBands ne $bands || $updated == 1} {
 	    tk_messageBox -icon info -message "SOTALog needs to be restarted for changes to be applied" -type ok
 	    exit 0
 	}
