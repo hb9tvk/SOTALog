@@ -152,19 +152,19 @@ the port at 38400,n,8,1 and polls the radio once a second with the Elecraft
 
 | reply | band | reply | band |
 | --- | --- | --- | --- |
-| `BN02;` | 60m | `BN06;` | 17m |
-| `BN03;` | 40m | `BN07;` | 15m |
-| `BN04;` | 30m | `BN08;` | 12m |
-| `BN05;` | 20m | `BN09;` | 10m |
+| `BN00;` | 160m | `BN06;` | 17m |
+| `BN01;` | 80m | `BN07;` | 15m |
+| `BN02;` | 60m | `BN08;` | 12m |
+| `BN03;` | 40m | `BN09;` | 10m |
+| `BN04;` | 30m | `BN10;` | 6m |
+| `BN05;` | 20m | | |
 
-Every band in the band list has a command and every command names a band the
-log can use. `tests/bands.test` checks both directions, because the two are
-declared in different files — the list in `src/main.tcl`, the map in
-`src/kx3.tcl` — and drifted apart once before.
+The KX3 covers 160m through 6m. The bands above that in the master table — 4m,
+2m, 70cm and 23cm — are reached with a transverter and the radio does not
+report them, so they have no entry and are chosen by hand.
 
-**6m is deliberately absent.** The radio sends `BN10;` for it, but 6m is not
-in the band list, and adding it would mean a ninth row in the band panel and a
-taller window. `kx3band` checks the map before assigning, so a radio switched
-to 6m simply leaves the band where the operator put it. Commit 4930184,
-"replaced 6m by 60m", had left the map pointing at a band the list no longer
-had, which made the next QSO fail to log; that is what this resolves.
+`kx3band` ignores a reply twice over: one it does not recognise at all, and one
+naming a band the operator has not chosen to display — following that would
+select a band with no button beside it and no counter. Either way the band
+stays where it was put. `tests/bands.test` covers both, and checks that every
+command names a band the master table knows.

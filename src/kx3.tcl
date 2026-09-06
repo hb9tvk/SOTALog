@@ -1,13 +1,15 @@
 namespace eval ::sotalog {
-    # The band the radio reports, from its BN; query, mapped to the wavelength
-    # the log uses.  The reply is five characters, so the keys include the
+    # What the radio reports for its BN; query, mapped to the wavelength the
+    # log uses.  The reply is five characters, so the keys carry the
     # terminating semicolon.
     #
-    # BN10, which the radio sends for 6m, is deliberately absent: 6m is not in
-    # the band list, and adding it would mean a ninth row in the band panel
-    # and a taller window.  kx3band ignores a reply it does not recognise, so
-    # switching the radio to 6m simply leaves the band where it was.
+    # The KX3 covers 160m through 6m.  The bands above that in the band table -
+    # 4m, 2m, 70cm and 23cm - are reached with a transverter and the radio does
+    # not report them, so they have no entry here and can only be chosen by
+    # hand.
     variable kx3bands [list \
+        BN00\; 160m \
+        BN01\; 80m \
         BN02\; 60m \
         BN03\; 40m \
         BN04\; 30m \
@@ -15,7 +17,8 @@ namespace eval ::sotalog {
         BN06\; 17m \
         BN07\; 15m \
         BN08\; 12m \
-        BN09\; 10m]
+        BN09\; 10m \
+        BN10\; 6m]
     variable kx32b
     array set kx32b $kx3bands
 }
@@ -24,11 +27,21 @@ proc ::sotalog::kx3band {} {
     variable serial
     variable kx32b
     variable band
+    variable bands
 
     set response [read $serial 5]
-    if {[info exists kx32b($response)]} {
-	set band $kx32b($response)
+    if {![info exists kx32b($response)]} { return }
+
+    # The radio can be on a band the operator has chosen not to display.
+    # Following it would select a band with no button beside it and no counter,
+    # so leave the band where it is.
+    set reported $kx32b($response)
+    if {[lsearch -exact $bands $reported] < 0} {
+        logMsg debug "radio is on $reported, which is not among the selected bands"
+        return
     }
+
+    set band $reported
 }
 
 proc ::sotalog::kx3poll {} {

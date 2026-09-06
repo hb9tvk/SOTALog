@@ -25,20 +25,33 @@ proc mappedBands {} {
     return [lsort -unique $bands]
 }
 
-test every-band-can-be-selected-by-radio {each band in the list has a KX3 command} -body {
-    set unmapped {}
-    foreach band [wavelengths] {
-        if {[lsearch -exact [mappedBands] $band] < 0} { lappend unmapped $band }
+# The wavelengths in the master table, without the frequencies.
+proc allWavelengths {} {
+    set bands {}
+    foreach {wl fq} $::sotalog::allBands { lappend bands $wl }
+    return $bands
+}
+
+proc mappedBands {} {
+    set bands {}
+    foreach key [array names ::sotalog::kx32b] { lappend bands $::sotalog::kx32b($key) }
+    return [lsort -unique $bands]
+}
+
+test map-names-real-bands {every KX3 command names a band the log knows} -body {
+    set unknown {}
+    foreach band [mappedBands] {
+        if {[lsearch -exact [allWavelengths] $band] < 0} { lappend unknown "|$band|" }
     }
-    set unmapped
+    set unknown
 } -result {}
 
-test sixty-metres-is-mapped {60m answers to BN02, the command the radio sends} -body {
-    # The key is held in a variable: a semicolon inside an array index would
-    # end the command.
-    set key "BN02;"
-    set ::sotalog::kx32b($key)
-} -result 60m
+test radio-covers-160m-to-6m {the map covers the whole range the KX3 reaches
+    Everything above 6m in the band table - 4m, 2m, 70cm, 23cm - needs a
+    transverter and is not reported by the radio, so it is chosen by hand.
+} -body {
+    lsort [mappedBands]
+} -result [lsort {160m 80m 60m 40m 30m 20m 17m 15m 12m 10m 6m}]
 
 test map-keys-are-five-characters {the keys match what kx3band reads off the port
     kx3band reads exactly five characters, so every key has to be that long,
@@ -51,42 +64,52 @@ test map-keys-are-five-characters {the keys match what kx3band reads off the por
     lsort $wrong
 } -result {}
 
-test every-mapped-band-is-usable {the map never names a band the log cannot use
-    The other direction of the same check.  BN10, which the radio sends for
-    6m, is deliberately not in the map: 6m is not in the band list, and adding
-    it would mean a ninth row in the band panel and a taller window.
-} -body {
-    set unusable {}
-    foreach band [mappedBands] {
-        if {[lsearch -exact [wavelengths] $band] < 0} { lappend unusable "|$band|" }
-    }
-    set unusable
-} -result {}
+# kx3band is driven through a file standing in for the serial port.
+proc radioReports {reply} {
+    set path [file join [sandbox] reply]
+    set fh [open $path w]
+    fconfigure $fh -translation binary
+    puts -nonewline $fh $reply
+    close $fh
+    set ::sotalog::serial [open $path r]
+    kx3band
+    close $::sotalog::serial
+    return $::sotalog::band
+}
 
-test unknown-reply-leaves-the-band-alone {a band the map does not cover is ignored
-    This is what makes dropping BN10 safe: kx3band checks before it assigns,
-    so switching the radio to 6m leaves the band where the operator put it
-    rather than setting one nothing else knows.  Driven through a file
-    standing in for the serial port.
+test radio-selects-a-displayed-band {a reply for a selected band moves the band} -setup {
+    set ::sotalog::bands $::sotalog::defaultBands
+    set ::sotalog::band 40m
+} -body {
+    radioReports "BN04;"
+} -result 30m
+
+test radio-ignores-an-undisplayed-band {a reply for a band that is not shown is ignored
+    160m is in the master table and the radio can report it, but it is not in
+    the default selection, so following it would select a band with no button
+    and no counter.
 } -setup {
-    set dir [sandbox]
-    set path [file join $dir reply]
+    set ::sotalog::bands $::sotalog::defaultBands
+    set ::sotalog::band 40m
 } -body {
-    set results {}
-    foreach {reply expected} {BN04; 30m BN10; 40m} {
-        set fh [open $path w]
-        fconfigure $fh -translation binary
-        puts -nonewline $fh $reply
-        close $fh
+    radioReports "BN00;"
+} -result 40m
 
-        set ::sotalog::band 40m
-        set ::sotalog::serial [open $path r]
-        kx3band
-        close $::sotalog::serial
-        lappend results $::sotalog::band
-    }
-    set results
-} -result {30m 40m}
+test radio-follows-a-band-once-selected {and follows it once the operator adds it} -setup {
+    set ::sotalog::bands [concat 160m $::sotalog::defaultBands]
+    set ::sotalog::band 40m
+} -cleanup {
+    set ::sotalog::bands $::sotalog::defaultBands
+} -body {
+    radioReports "BN00;"
+} -result 160m
+
+test radio-ignores-an-unknown-reply {a reply that is not a band at all is ignored} -setup {
+    set ::sotalog::bands $::sotalog::defaultBands
+    set ::sotalog::band 40m
+} -body {
+    radioReports "BN99;"
+} -result 40m
 
 # Reopening a log written on a band that is no longer displayed.  This needs
 # the real window, because insertLog updates a counter beside each band and
