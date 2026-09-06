@@ -280,9 +280,7 @@ proc ::sotalog::configDialog {} {
     grid .cfg.cancel -row 7 -column 0
     grid .cfg.ok -row 7 -column 1
 	
-    focus .cfg.call
-
-    set res [ Show.Modal .cfg $cancel]
+    set res [Show.Modal .cfg $cancel .cfg.call]
     
     if {$res} {
         saveConfig

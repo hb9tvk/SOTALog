@@ -214,8 +214,7 @@ proc ::sotalog::s2sWidgets {} {
 proc ::sotalog::s2sDialog {} {
     s2sWidgets
 
-    focus .s2s.ass
-    if {[Show.Modal .s2s {set ::sotalog::modalResult 0}]} {
+    if {[Show.Modal .s2s {set ::sotalog::modalResult 0} .s2s.ass]} {
         saveS2s
     }
     destroy .s2s

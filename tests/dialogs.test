@@ -124,5 +124,45 @@ test message-is-dismissed {and it goes away once acknowledged} -body {
     winfo exists .message
 } -result 0
 
+# Which field the operator is typing in when a dialog opens.
+#
+# Show.Modal used to focus the toplevel, which looks the same on screen but
+# swallows the first keystrokes until something is clicked or tabbed to.  Both
+# dialogs set the focus themselves before calling it, and it took it away
+# again; it now takes the field as an argument.
+
+set ::sotalog::myCall HB9TVK/P
+set ::sotalog::utcDate 06/09/2026
+set ::sotalog::oneKeyReport 1
+set ::sotalog::updated 0
+set ::sotalog::s2s ""
+loadFakeSummitData
+
+test config-dialog-focuses-the-call {the configuration dialog starts in the call field} -setup {
+    destroy .cfg
+} -cleanup {
+    array unset ::sotalog::bandSelected
+} -body {
+    after 400 {
+        update
+        set ::focused [focus]
+        set ::sotalog::modalResult 0
+    }
+    configDialog
+    set ::focused
+} -result .cfg.call
+
+test s2s-dialog-focuses-the-association {the S2S dialog starts in the association field
+    It is the first of the three, and the operator types straight into it.
+} -body {
+    after 400 {
+        update
+        set ::focused [focus]
+        set ::sotalog::modalResult 0
+    }
+    s2sDialog
+    set ::focused
+} -result .s2s.ass
+
 removeSandboxes
 cleanupTests

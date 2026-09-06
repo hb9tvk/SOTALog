@@ -240,7 +240,11 @@ proc ::sotalog::centreOnMain {win} {
 
 # Runs a dialog modally, centred on the main window, and returns 1 if it was
 # accepted.
-proc ::sotalog::Show.Modal {win onclose} {
+#
+# focusWidget is the field the operator should be typing in as the dialog
+# opens.  Without it the focus goes to the toplevel, which looks the same but
+# swallows the first keystrokes until something is clicked or tabbed to.
+proc ::sotalog::Show.Modal {win onclose {focusWidget ""}} {
     variable modalResult
 
     set modalResult {}
@@ -250,7 +254,8 @@ proc ::sotalog::Show.Modal {win onclose} {
     centreOnMain $win
 
     raise $win
-    focus $win
+    if {$focusWidget eq ""} { set focusWidget $win }
+    focus $focusWidget
     grab $win
     tkwait variable ::sotalog::modalResult
     grab release $win
