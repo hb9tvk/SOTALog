@@ -56,7 +56,7 @@ UTF-8.
 
 Either this or the CSV can be uploaded to the SOTA database; the ADIF is also
 what you would import into your own logging software. It was not always
-uploadable — until 3.0.2 it had no header and kept the summit references in a
+uploadable — until 3.1.0 it had no header and kept the summit references in a
 free-text comment, which the database rejects.
 
 The file opens with a header, written once when the file is created:
@@ -64,7 +64,7 @@ The file opens with a header, written once when the file is created:
     ADIF export from SOTALog: HB9TVK/P at HB/OW-020 on 2026-08-19
     <ADIF_VER:5>3.1.5
     <PROGRAMID:7>SOTALog
-    <PROGRAMVERSION:5>3.0.2
+    <PROGRAMVERSION:5>3.1.0
     <EOH>
 
 Then one record per line:

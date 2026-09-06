@@ -47,7 +47,7 @@ test csv-no-stray-spaces {no field picks up a stray space} -body {
 # The ADIF export, in the form the SOTA database accepts for upload.
 #
 # What makes it uploadable is MY_SOTA_REF for the summit being activated and
-# SOTA_REF for the one worked in a summit-to-summit.  Before 3.0.2 both went
+# SOTA_REF for the one worked in a summit-to-summit.  Before 3.1.0 both went
 # into a free-text comment and the database rejected the file.
 
 test adif-basic {a complete record} -body {
