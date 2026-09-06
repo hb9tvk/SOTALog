@@ -22,7 +22,7 @@ Ten comma-separated fields:
 | 3 | date | `05/09/2026` | `dd/mm/yyyy`, **local** date |
 | 4 | time | `1205` | `HHMM`, **UTC** |
 | 5 | frequency | `7.0MHz` | the band edge, not the actual frequency |
-| 6 | mode | `CW` | `CW` or `SSB` |
+| 6 | mode | `CW` | `CW`, `SSB` or `FM` |
 | 7 | station worked | `DL1ABC` | |
 | 8 | summit-to-summit | `HB/VS-001` | empty when not an S2S |
 | 9 | remark | `"RSTS:599 RSTR:579 windy"` | double-quoted, see below |

@@ -103,6 +103,32 @@ test unknown-call-restores-summit-info {an unknown call puts the summit details 
     list [.sotalog.info cget -text] [.sotalog.info cget -fg]
 } -result {{Alt: 3967 Pts: 10 Mode: CW} black}
 
+test fm-reports-are-typed-in-full {FM gets no one-key expansion, like SSB} -setup {
+    set ::sotalog::mode FM
+    set ::sotalog::oneKeyReport 1
+    setEntry .sotalog.rsts ""
+} -cleanup {
+    set ::sotalog::mode CW
+} -body {
+    foreach d {5 9} { validateKey .sotalog.rsts processRSTs all 1 $d key }
+    .sotalog.rsts get
+} -result 59
+
+test cw-is-the-only-expanding-mode {every other mode types through} -setup {
+    set ::sotalog::oneKeyReport 1
+} -cleanup {
+    set ::sotalog::mode CW
+} -body {
+    set results {}
+    foreach m $::sotalog::modes {
+        set ::sotalog::mode $m
+        setEntry .sotalog.rsts ""
+        validateKey .sotalog.rsts processRSTs all 1 5 key
+        lappend results $m [.sotalog.rsts get]
+    }
+    set results
+} -result {CW 559 SSB 5 FM 5}
+
 # The configuration dialog's call field validates separately.
 toplevel .cfg
 entry .cfg.call

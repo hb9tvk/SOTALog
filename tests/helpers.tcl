@@ -96,7 +96,6 @@ proc sotalogtest::startLogWindow {dir {entryModeOn 0}} {
     set ::sotalog::ref HB/BE-003
     set ::sotalog::s2s ""
     set ::sotalog::mode CW
-    set ::sotalog::modes {CW SSB}
     set ::sotalog::entryMode $entryModeOn
     set ::sotalog::utcDate 05/09/2026
     set ::sotalog::oneKeyReport 1

@@ -90,6 +90,14 @@ test parse-ssb {two-character reports are recovered} -body {
     list [dict get $q rsts] [dict get $q rstr] [dict get $q mode]
 } -result {59 57 SSB}
 
+test csv-fm {FM reaches the CSV as its own mode} -body {
+    formatQsoCsv [qso mode FM rsts 59 rstr 57 band 2m freq 144MHz]
+} -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,144MHz,FM,HB9XYZ,,"RSTS:59 RSTR:57"}
+
+test adif-fm {and the ADIF record carries it too} -body {
+    formatQsoAdif [qso mode FM rsts 59 rstr 57 band 2m freq 144MHz]
+} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:2>2M <mode:2>FM <rst_sent:2>59 <rst_rcvd:2>57 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+
 test roundtrip {format then parse returns what went in} -body {
     set original [qso rem "nice sig"]
     set back [parseQsoCsv [formatQsoCsv $original]]

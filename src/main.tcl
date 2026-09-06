@@ -38,7 +38,6 @@ namespace eval ::sotalog {
     variable w2f
     array set w2f $bandlist
 
-    variable modes [list CW SSB]
     variable s2s ""
     variable mode CW
 

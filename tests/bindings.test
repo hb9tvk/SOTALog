@@ -56,15 +56,17 @@ test band-switch-bindings {Page Down and Page Up move through the bands} -setup 
     list $up $back $::sotalog::band
 } -result {30m 40m 60m}
 
-test mode-toggle-binding {F8 cycles the mode} -setup {
+test mode-toggle-binding {F8 cycles the mode and wraps} -setup {
     set ::sotalog::band 40m
     set ::sotalog::mode CW
 } -body {
-    event generate . <F8>
-    set first $::sotalog::mode
-    event generate . <F8>
-    list $first $::sotalog::mode
-} -result {SSB CW}
+    set seq {}
+    for {set i 0} {$i < 4} {incr i} {
+        lappend seq $::sotalog::mode
+        event generate . <F8>
+    }
+    lappend seq $::sotalog::mode
+} -result {CW SSB FM CW SSB}
 
 test return-logs-the-qso {Return in the log window saves and clears} -setup {
     set ::sotalog::band 40m

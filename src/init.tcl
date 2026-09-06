@@ -13,6 +13,15 @@ namespace eval ::sotalog {
     # The release version, shown in the window title and used by the macOS
     # build, which reads this line out of this file.
     variable SOTALOG_VERSION 2.3.0
+
+    # The modes F8 cycles through.  Only CW gets the one-key report expansion;
+    # SSB and FM reports are typed in full.
+    #
+    # Declared here rather than in main.tcl so that the tests see the same list
+    # the application does - main.tcl is the startup script and is not loaded
+    # under test, so anything it declares has to be duplicated in the harness,
+    # and duplicated lists drift.
+    variable modes [list CW SSB FM]
 }
 
 # The package version keeps only major.minor, so that it goes on matching the
