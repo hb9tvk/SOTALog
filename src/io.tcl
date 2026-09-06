@@ -239,8 +239,8 @@ proc ::sotalog::saveLog {} {
     # fail looking one up.  Say so and leave what was typed alone, so the
     # operator can pick a band and press Return again.
     if {![string length $band]} {
-        tk_messageBox -icon warning -type ok -title "No band selected" \
-            -message "Select a band before logging this QSO."
+        showMessage warning "No band selected" \
+            "Select a band before logging this QSO."
         return
     }
 

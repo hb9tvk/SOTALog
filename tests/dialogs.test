@@ -81,5 +81,48 @@ test dialog-stays-on-screen {and never leaves the screen} -body {
          [expr {$y + $h <= [winfo screenheight .]}]
 } -result {1 1 1 1}
 
+# showMessage replaced tk_messageBox, which on Windows is the native system
+# box: it centres on the screen rather than on the application, ignores the
+# application's fonts, and cannot be inspected at all - winfo does not see it,
+# so the tests could only stub it out.  Being a real Tk window, this one can be
+# driven and measured.
+
+# Opens a message, records what it shows and where, and dismisses it.
+proc messageGeometry {icon title text} {
+    after 400 {
+        update idletasks
+        set ::shown [list \
+            [winfo exists .message] \
+            [.message.text cget -text] \
+            [.message.icon cget -bitmap] \
+            [wm title .message] \
+            [winfo rootx .message] [winfo rooty .message] \
+            [winfo reqwidth .message] [winfo reqheight .message]]
+        set ::sotalog::messageResult 1
+    }
+    showMessage $icon $title $text
+    return $::shown
+}
+
+test message-shows-what-it-was-given {the message, icon and title all appear} -body {
+    lassign [messageGeometry warning "No band selected" "Select a band before logging this QSO."] \
+        exists text icon title
+    list $exists $text $icon $title
+} -result {1 {Select a band before logging this QSO.} warning {No band selected}}
+
+test message-is-centred-on-the-main-window {and it opens over the window, not the screen} -body {
+    lassign [messageGeometry info "Restart needed" "SOTALog needs to be restarted."] \
+        exists text icon title x y w h
+    set mainCentreX [expr {[winfo rootx .] + [winfo width .] / 2}]
+    set mainCentreY [expr {[winfo rooty .] + [winfo height .] / 2}]
+    list [expr {abs(($x + $w / 2) - $mainCentreX) <= 1}] \
+         [expr {abs(($y + $h / 2) - $mainCentreY) <= 1}]
+} -result {1 1}
+
+test message-is-dismissed {and it goes away once acknowledged} -body {
+    messageGeometry error "Update failed" "Something went wrong."
+    winfo exists .message
+} -result 0
+
 removeSandboxes
 cleanupTests

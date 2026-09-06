@@ -101,7 +101,7 @@ proc ::sotalog::saveConfig {} {
         if {[llength $chosen]} {
             set bands $chosen
         } else {
-            tk_messageBox -icon warning -type ok -message \
+            showMessage warning "Bands" \
                 "At least one band has to be selected.\nThe previous selection has been kept."
         }
     }
@@ -267,7 +267,7 @@ proc ::sotalog::configDialog {} {
     if {$res} {
         saveConfig
 	if {$oldEmo != $entryMode || $oldBands ne $bands || $updated == 1} {
-	    tk_messageBox -icon info -message "SOTALog needs to be restarted for changes to be applied" -type ok
+	    showMessage info "Restart needed" "SOTALog needs to be restarted for changes to be applied"
 	    exit 0
 	}
     }

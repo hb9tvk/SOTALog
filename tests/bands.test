@@ -157,20 +157,20 @@ test unknown-frequency-leaves-the-band-alone {a frequency not in the table is ig
 # Entering QSOs at home after an activation, the band is easy to forget, and
 # one silently left at a default is worse than being asked for it.
 test saving-without-a-band-is-refused {logging without a band asks for one
-    tk_messageBox is stubbed: the real one would wait for a click.
+    showMessage is stubbed: the real one waits for a click.
 } -setup {
     set ::sotalog::band ""
     set ::warned 0
-    rename ::tk_messageBox ::realMessageBox
-    proc ::tk_messageBox {args} { set ::warned 1; return ok }
+    rename ::sotalog::showMessage ::sotalog::realShowMessage
+    proc ::sotalog::showMessage {args} { set ::warned 1 }
     setEntry .sotalog.call HB9XYZ
     setEntry .sotalog.rsts 599
     setEntry .sotalog.rstr 579
     setEntry .sotalog.rem ""
     set ::sotalog::box {}
 } -cleanup {
-    rename ::tk_messageBox {}
-    rename ::realMessageBox ::tk_messageBox
+    rename ::sotalog::showMessage {}
+    rename ::sotalog::realShowMessage ::sotalog::showMessage
 } -body {
     saveLog
     # Warned, nothing logged, and what was typed is still there to retry with.
@@ -195,13 +195,13 @@ test saving-with-a-band-still-works {choosing a band and pressing Return again l
 test empty-call-still-just-clears {an empty form is not nagged about the band} -setup {
     set ::sotalog::band ""
     set ::warned 0
-    rename ::tk_messageBox ::realMessageBox
-    proc ::tk_messageBox {args} { set ::warned 1; return ok }
+    rename ::sotalog::showMessage ::sotalog::realShowMessage
+    proc ::sotalog::showMessage {args} { set ::warned 1 }
     setEntry .sotalog.call ""
     setEntry .sotalog.rem "leftover"
 } -cleanup {
-    rename ::tk_messageBox {}
-    rename ::realMessageBox ::tk_messageBox
+    rename ::sotalog::showMessage {}
+    rename ::sotalog::realShowMessage ::sotalog::showMessage
 } -body {
     saveLog
     list $::warned [.sotalog.rem get]

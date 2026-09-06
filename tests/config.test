@@ -226,7 +226,7 @@ test bands-roundtrip {what the dialog ticks survives a save and a load} -setup {
 } -result {160m 2m}
 
 test dialog-offers-and-saves-bands {the dialog lists every band and keeps what is ticked
-    Drives the real modal dialog.  exit and tk_messageBox are stubbed because
+    Drives the real modal dialog.  exit and showMessage are stubbed because
     a band change asks for a restart, and configDialog carries that out by
     calling exit - which would take the test run with it.
 } -setup {
@@ -239,13 +239,13 @@ test dialog-offers-and-saves-bands {the dialog lists every band and keeps what i
     set ::bandButtons 0
     rename ::exit ::realExit
     proc ::exit {args} { set ::restartRequested 1 }
-    rename ::tk_messageBox ::realMessageBox
-    proc ::tk_messageBox {args} { return ok }
+    rename ::sotalog::showMessage ::sotalog::realShowMessage
+    proc ::sotalog::showMessage {args} {}
 } -cleanup {
     rename ::exit {}
     rename ::realExit ::exit
-    rename ::tk_messageBox {}
-    rename ::realMessageBox ::tk_messageBox
+    rename ::sotalog::showMessage {}
+    rename ::sotalog::realShowMessage ::sotalog::showMessage
     array unset ::sotalog::bandSelected
     # Put back the two fields the earlier tests drive saveConfig through.
     destroy .cfg

@@ -169,6 +169,49 @@ proc ::sotalog::clampToScreen {position size screen} {
 
 # Runs a dialog modally, centred on the main window, and returns 1 if it was
 # accepted.
+# Places a window centred on the main window and keeps it on the screen.
+#
+# wm geometry sets the position of the window frame, while winfo rootx reports
+# the client area inside it.  Mixing the two puts the window out by the size of
+# the title bar and border, so the main window position is taken from wm
+# geometry, matching what is about to be set, and its size from winfo, which is
+# the area the operator sees.
+# Places a window centred on the main window and keeps it on the screen.
+#
+# What gets centred is the client areas - the part the operator sees - not the
+# window frames.  The two differ: wm geometry positions the frame, winfo rootx
+# reports the client area inside it, and the border is not the same for every
+# window.  The main window's is 11 across and 45 down here, a dialog that
+# cannot be resized gets 3 and 37, so centring frame on frame leaves it eight
+# pixels out.
+#
+# There is no way to ask how thick a window's border is before it has one, so
+# the window is placed, measured, and corrected by however far the client area
+# landed from where it was wanted.
+proc ::sotalog::centreOnMain {win} {
+    # Until the geometry manager has run, the requested size is whatever it
+    # happened to be part way through building the window.
+    update idletasks
+
+    set width [winfo reqwidth $win]
+    set height [winfo reqheight $win]
+    set wantX [expr {[winfo rootx .] + ([winfo width .] - $width) / 2}]
+    set wantY [expr {[winfo rooty .] + ([winfo height .] - $height) / 2}]
+
+    wm geometry $win +$wantX+$wantY
+    update idletasks
+    set x [expr {2 * $wantX - [winfo rootx $win]}]
+    set y [expr {2 * $wantY - [winfo rooty $win]}]
+
+    # Centring on the main window is not enough when the main window is itself
+    # near an edge of the screen.
+    set x [clampToScreen $x $width [winfo screenwidth $win]]
+    set y [clampToScreen $y $height [winfo screenheight $win]]
+    wm geometry $win +$x+$y
+}
+
+# Runs a dialog modally, centred on the main window, and returns 1 if it was
+# accepted.
 proc ::sotalog::Show.Modal {win onclose} {
     variable modalResult
 
@@ -176,33 +219,7 @@ proc ::sotalog::Show.Modal {win onclose} {
     wm transient $win .
     wm protocol $win WM_DELETE_WINDOW [list catch $onclose ::sotalog::modalResult]
 
-    # Let the geometry manager finish before measuring.  Without this the
-    # requested size is whatever it happened to be part way through building
-    # the dialog - about 200x200 for the configuration dialog - and centring
-    # on that puts the window somewhere arbitrary.  It used to land partly
-    # below the main window, which matters on a small screen.
-    update idletasks
-
-    set width [winfo reqwidth $win]
-    set height [winfo reqheight $win]
-
-    # wm geometry sets the position of the window frame, while winfo rootx
-    # reports the client area inside it.  Mixing the two puts the dialog out by
-    # the size of the title bar and border - 11 across and 45 down on Windows.
-    # Take the main window position from wm geometry, to match what is about to
-    # be set, and its size from winfo, which is the area the operator sees.
-    if {![regexp {\+(-?[0-9]+)\+(-?[0-9]+)$} [wm geometry .] -> mainX mainY]} {
-        set mainX [winfo rootx .]
-        set mainY [winfo rooty .]
-    }
-    set x [expr {$mainX + ([winfo width .] - $width) / 2}]
-    set y [expr {$mainY + ([winfo height .] - $height) / 2}]
-
-    # A dialog centred on the main window can still hang off the screen when
-    # the main window is itself near an edge.
-    set x [clampToScreen $x $width [winfo screenwidth $win]]
-    set y [clampToScreen $y $height [winfo screenheight $win]]
-    wm geometry $win +$x+$y
+    centreOnMain $win
 
     raise $win
     focus $win
@@ -211,6 +228,52 @@ proc ::sotalog::Show.Modal {win onclose} {
     grab release $win
 
     return $modalResult
+}
+
+# A message the operator has to acknowledge.
+#
+# This replaces tk_messageBox, which on Windows is the native system box: it
+# centres on the screen rather than on the application, ignores the fonts the
+# rest of the application uses, and cannot be inspected by the tests.  Icon is
+# one of the Tk bitmaps info, warning or error.
+proc ::sotalog::showMessage {icon title message} {
+    variable messageResult
+
+    set win .message
+    destroy $win
+    toplevel $win
+    wm title $win $title
+    wm resizable $win 0 0
+
+    label $win.icon -bitmap $icon
+    label $win.text -text $message -font sotasmall -justify left
+    button $win.ok -text OK -font sotasmall -width 8 \
+        -command {set ::sotalog::messageResult 1}
+
+    grid $win.icon -row 0 -column 0 -padx 12 -pady 12
+    grid $win.text -row 0 -column 1 -padx 12 -pady 12 -sticky w
+    grid $win.ok -row 1 -column 0 -columnspan 2 -pady 8
+
+    bind $win <Return> {set ::sotalog::messageResult 1}
+    bind $win <Escape> {set ::sotalog::messageResult 1}
+    wm transient $win .
+    wm protocol $win WM_DELETE_WINDOW {set ::sotalog::messageResult 1}
+
+    centreOnMain $win
+
+    # A message can be raised from inside another modal dialog - the update
+    # progress runs inside the configuration dialog - so the grab that was in
+    # force has to be put back rather than simply released.
+    set previousGrab [grab current $win]
+
+    set messageResult {}
+    raise $win
+    focus $win.ok
+    grab $win
+    tkwait variable ::sotalog::messageResult
+    grab release $win
+    destroy $win
+    if {$previousGrab ne ""} { catch {grab $previousGrab} }
 }
 
 # names.txt and sotacalls.txt are hand-maintained ASCII, but say so rather

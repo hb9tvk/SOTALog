@@ -49,6 +49,12 @@ so that line declares `a` with the value `b`. One name per `variable`.
 
 **`upvar #0 $name` reaches the global namespace**, not `::sotalog`. Qualify it.
 
+**Use `showMessage`, not `tk_messageBox`.** On Windows Tk maps `tk_messageBox`
+to the native system box: it centres on the screen rather than on the
+application, ignores the fonts, and `winfo` cannot see it, so the tests can
+only stub it out. `showMessage` is a Tk window, centred on the main window by
+`centreOnMain`, and the tests can drive and measure it.
+
 **A backslash continuation inside a quoted Tcl string collapses to a space.**
 That put spaces into the middle of every CSV record once. Build records with
 `join`, not interpolation.

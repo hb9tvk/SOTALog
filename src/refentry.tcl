@@ -45,7 +45,7 @@ proc ::sotalog::saveRef {} {
     set ref [.ref.ref get]
 
     if {![regexp {[0-9]+$} $ref refnum]} {
-        tk_messageBox -icon error -message "Invalid SOTA REF" -type ok
+        showMessage error "Invalid reference" "Invalid SOTA REF"
         return
     }
     regsub {[0-9]+$} $ref [format %03d [string trimleft $refnum 0]] ref
@@ -55,7 +55,7 @@ proc ::sotalog::saveRef {} {
     }
     loadSummits
     if {![info exists summits(${ref},name)]} {
-        tk_messageBox -icon error -message "Unknown SOTA REF" -type ok
+        showMessage error "Unknown reference" "Unknown SOTA REF"
         return
     }
     set enteredRef 1

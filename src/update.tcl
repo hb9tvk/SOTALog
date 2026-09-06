@@ -140,11 +140,11 @@ proc ::sotalog::updateCallsAndSummits {} {
     destroy .cfg.progress .cfg.progresslabel
 
     if {[llength $failed]} {
-        tk_messageBox -icon error -type ok \
-            -message "Update failed. Your existing data has been kept.\n\n[join $failed \n\n]"
+        showMessage error "Update failed" \
+            "Update failed. Your existing data has been kept.\n\n[join $failed \n\n]"
     } else {
-        tk_messageBox -icon info -type ok \
-            -message "Summits and calls updated successfully"
+        showMessage info "Update complete" \
+            "Summits and calls updated successfully"
     }
 
     foreach c $controls { $c configure -state normal }
