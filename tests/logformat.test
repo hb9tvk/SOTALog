@@ -31,8 +31,8 @@ test csv-plain {a QSO with both reports and a remark} -body {
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579 nice sig"}
 
 test adif-plain {the matching ADIF record} -body {
-    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 0
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>579 <station_callsign:8>HB9TVK/P <comment_intl:31>SOTA HB/BE-003 Remark: nice sig <eor>}
+    lindex [adifRecords [file join $dir $::sotalog::adif]] 0
+} -result {<CALL:6>HB9XYZ <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <RST_RCVD:3>579 <RST_SENT:3>599 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <COMMENT:8>nice sig <EOR>}
 
 test csv-summit-to-summit {an S2S contact carries the far summit in its own column and in the remark} -setup {
     set ::sotalog::s2s HB/VS-001
@@ -43,9 +43,9 @@ test csv-summit-to-summit {an S2S contact carries the far summit in its own colu
     lindex [split [string trim [readFile [file join $dir $::sotalog::logfile]]] \n] 1
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,DL1ABC,HB/VS-001,"RSTS:559 RSTR:339 S2S:HB/VS-001"}
 
-test adif-summit-to-summit {ADIF puts the S2S in the comment instead} -body {
-    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 1
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>DL1ABC <band:3>40M <mode:2>CW <rst_sent:3>559 <rst_rcvd:3>339 <station_callsign:8>HB9TVK/P <comment_intl:33>SOTA HB/BE-003 S2S with HB/VS-001 <eor>}
+test adif-summit-to-summit {the worked summit goes in SOTA_REF, which is what the database reads} -body {
+    lindex [adifRecords [file join $dir $::sotalog::adif]] 1
+} -result {<CALL:6>DL1ABC <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <RST_RCVD:3>339 <RST_SENT:3>559 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <SOTA_REF:9>HB/VS-001 <EOR>}
 
 test csv-bare {a QSO with no reports and no remark still logs the call} -body {
     logQso call G0XYZ
@@ -53,8 +53,8 @@ test csv-bare {a QSO with no reports and no remark still logs the call} -body {
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,G0XYZ,,""}
 
 test adif-empty-rst {a QSO with no reports omits the report fields entirely} -body {
-    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 2
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:5>G0XYZ <band:3>40M <mode:2>CW <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+    lindex [adifRecords [file join $dir $::sotalog::adif]] 2
+} -result {<CALL:5>G0XYZ <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
 
 
 test empty-call-is-ignored {pressing Return on an empty call logs nothing} -body {
@@ -97,11 +97,34 @@ test reload-parses-remark-column {reloading splits the reports back out of the r
 # Logged last, because it adds a fourth QSO and the tests above count three.
 test adif-short-report {a two-character SSB report declares a length of two} -body {
     logQso call PA0ABC rsts 59 rstr 57
-    lindex [split [string trim [readFile [file join $dir $::sotalog::adif]]] \n] 3
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>PA0ABC <band:3>40M <mode:2>CW <rst_sent:2>59 <rst_rcvd:2>57 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+    lindex [adifRecords [file join $dir $::sotalog::adif]] 3
+} -result {<CALL:6>PA0ABC <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <RST_RCVD:2>57 <RST_SENT:2>59 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
 
 
 # tcltest exits from cleanupTests with a zero status whatever happened, so
 # tools/test.tcl decides pass or fail by reading the summary line below.
+test adif-header-appears-once {the header is written when the file is created, not per QSO
+    The records are appended one at a time as QSOs are logged, so the header
+    has to be written only when the file does not yet exist - a second one part
+    way through the file would make it unreadable.
+} -body {
+    set text [readFile [file join $dir $::sotalog::adif]]
+    list [regexp -all {<EOH>} [string toupper $text]] \
+         [regexp -all {<EOR>} [string toupper $text]]
+} -result {1 4}
+
+test adif-header-comes-first {and it is at the top of the file} -body {
+    set first [lindex [split [readFile [file join $dir $::sotalog::adif]] \n] 0]
+    string match "ADIF export from SOTALog:*" $first
+} -result 1
+
+test adif-every-record-names-the-summit {every record carries MY_SOTA_REF} -body {
+    set without {}
+    foreach record [adifRecords [file join $dir $::sotalog::adif]] {
+        if {![string match "*<MY_SOTA_REF:9>HB/BE-003*" $record]} { lappend without $record }
+    }
+    llength $without
+} -result 0
+
 removeSandboxes
 cleanupTests

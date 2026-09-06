@@ -190,3 +190,25 @@ proc sotalogtest::validateKey {entry args} {
     $entry configure -validate all
     return $result
 }
+
+# The header of an ADIF file, everything up to and including <EOH>.
+proc sotalogtest::adifHeaderOf {path} {
+    set text [readFile $path]
+    set eoh [string first "<EOH>" [string toupper $text]]
+    if {$eoh < 0} { return "" }
+    return [string trim [string range $text 0 [expr {$eoh + 4}]]]
+}
+
+# The QSO records of an ADIF file, without the header, so that tests are not
+# written against line numbers that shift when the header changes.
+proc sotalogtest::adifRecords {path} {
+    set text [readFile $path]
+    set eoh [string first "<EOH>" [string toupper $text]]
+    set records {}
+    foreach line [split [string range $text [expr {$eoh + 5}] end] \n] {
+        if {[string match "*<EOR>*" [string toupper $line]]} {
+            lappend records [string trim $line]
+        }
+    }
+    return $records
+}

@@ -84,38 +84,81 @@ proc ::sotalog::parseQsoCsv {line} {
 # One ADIF record.  Every field declares its own length, so a report that is
 # absent is left out altogether rather than written with a length it does not
 # have.
+# One ADIF field, or nothing when there is no value.  Every field carries its
+# own length, so an absent value is left out rather than written with a length
+# it does not have.
+proc ::sotalog::adifField {name value} {
+    if {![string length $value]} { return "" }
+    return "<$name:[string length $value]>$value "
+}
+
+# The header the SOTA database needs before any record.  Written once, when the
+# file is created.
+proc ::sotalog::formatAdifHeader {qso} {
+    variable SOTALOG_VERSION
+
+    set date [dict get $qso adifdate]
+    if {[regexp {^([0-9]{4})([0-9]{2})([0-9]{2})$} $date -> year month day]} {
+        set date "$year-$month-$day"
+    }
+
+    return [join [list \
+        "ADIF export from SOTALog: [dict get $qso mycall] at [dict get $qso ref] on $date" \
+        [string trim [adifField ADIF_VER 3.1.5]] \
+        [string trim [adifField PROGRAMID SOTALog]] \
+        [string trim [adifField PROGRAMVERSION $SOTALOG_VERSION]] \
+        "<EOH>"] \n]
+}
+
+# One QSO, in the form the SOTA database accepts for upload.
+#
+# The summit references are the point of this.  When the application was
+# written ADIF had no field for them, so they went into the comment and the
+# file was only ever good for a personal log; ADIF 3 has MY_SOTA_REF for the
+# summit being activated and SOTA_REF for the one worked in a
+# summit-to-summit, and the database reads both.
+#
+# What is not written is as deliberate as what is.  SOTALog knows the band but
+# not the frequency within it, and nothing about the other station's location
+# or DXCC entity, so FREQ, GRIDSQUARE, DXCC, CQZ and ITUZ are left out rather
+# than guessed at.
 proc ::sotalog::formatQsoAdif {qso} {
-    set call     [dict get $qso call]
-    set mode     [dict get $qso mode]
-    set mycall   [dict get $qso mycall]
-    set adifdate [dict get $qso adifdate]
-    set band     [string toupper [string trim [dict get $qso band]]]
+    # The application records the minute, not the second.  ADIF allows a bare
+    # HHMM, but every SOTA log seen in the wild carries HHMMSS, so the seconds
+    # are written as zero - and only when the time is a full four digits, so a
+    # partly typed one is not silently turned into something else.
+    set utc [dict get $qso utc]
+    if {[string length $utc] == 4} { append utc "00" }
 
-    set ad "<qso_date:[string length $adifdate]:d>$adifdate "
-    append ad "<time_on:4>[dict get $qso utc] "
-    append ad "<call:[string length $call]>$call "
-    append ad "<band:[string length $band]>$band "
-    append ad "<mode:[string length $mode]>$mode "
+    set record ""
+    append record [adifField CALL [dict get $qso call]]
+    append record [adifField MODE [dict get $qso mode]]
+    append record [adifField BAND [string trim [dict get $qso band]]]
+    append record [adifField QSO_DATE [dict get $qso adifdate]]
+    append record [adifField TIME_ON $utc]
+    append record [adifField RST_RCVD [string trim [dict get $qso rstr]]]
+    append record [adifField RST_SENT [string trim [dict get $qso rsts]]]
+    append record [adifField STATION_CALLSIGN [dict get $qso mycall]]
+    append record [adifField OPERATOR [dict get $qso mycall]]
+    append record [adifField MY_SOTA_REF [dict get $qso ref]]
+    append record [adifField SOTA_REF [dict get $qso s2s]]
+    append record [adifField COMMENT [dict get $qso rem]]
+    append record "<EOR>"
 
-    foreach {field key} {rst_sent rsts rst_rcvd rstr} {
-        set value [string trim [dict get $qso $key]]
-        if {[string length $value]} { append ad "<$field:[string length $value]>$value " }
+    return $record
+}
+
+# Appends one QSO to the ADIF file, writing the header first if the file is
+# new.  A log resumed from an earlier session already has one.
+proc ::sotalog::appendAdifRecord {qso} {
+    variable cwd
+    variable adif
+
+    set path [file join $cwd $adif]
+    if {![file exists $path]} {
+        appendLine $path [formatAdifHeader $qso]
     }
-
-    append ad "<station_callsign:[string length $mycall]>$mycall "
-
-    # ADIF has no field for a summit reference, so the summit, the S2S and the
-    # remark all go into the comment.
-    set comment "SOTA [dict get $qso ref]"
-    if {[string length [dict get $qso s2s]]} {
-        append comment " S2S with [dict get $qso s2s]"
-    }
-    if {[string length [dict get $qso rem]]} {
-        append comment " Remark: [dict get $qso rem]"
-    }
-    append ad "<comment_intl:[string length $comment]>$comment <eor>"
-
-    return $ad
+    appendLine $path [formatQsoAdif $qso]
 }
 
 # Gathers what is currently in the entry fields into a QSO.
@@ -250,7 +293,7 @@ proc ::sotalog::saveLog {} {
         [dict get $qso rsts] [dict get $qso rstr] [dict get $qso rem]
 
     appendLine [file join $cwd $logfile] [formatQsoCsv $qso]
-    appendLine [file join $cwd $adif] [formatQsoAdif $qso]
+    appendAdifRecord $qso
 
     clear
 }

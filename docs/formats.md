@@ -50,23 +50,50 @@ already written looks like that.
 
 ## The ADIF export — `YYYY-MM-DD_ASSOC_REGION-NNN.adi`
 
-Written by `formatQsoAdif` in [`src/io.tcl`](../src/io.tcl), appended
-alongside the CSV, never read back. UTF-8. One record per line - wrapped over
-three lines here for readability, but written as one:
+Written by `formatQsoAdif` and `formatAdifHeader` in
+[`src/io.tcl`](../src/io.tcl), appended alongside the CSV, never read back.
+UTF-8.
 
-    <qso_date:8:d>20260905 <time_on:4>1205 <call:6>DL1ABC <band:3>40M
-    <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>579 <station_callsign:8>HB9TVK/P
-    <comment_intl:33>SOTA HB/BE-003 S2S with HB/VS-001 <eor>
+Either this or the CSV can be uploaded to the SOTA database; the ADIF is also
+what you would import into your own logging software. It was not always
+uploadable — until 3.0.2 it had no header and kept the summit references in a
+free-text comment, which the database rejects.
 
-Every ADIF field declares its own length, and each one here is computed rather
-than assumed. `rst_sent` and `rst_rcvd` are **omitted entirely** when there is
-no report, which is how ADIF represents an absent value — writing
-`<rst_sent:3>` with nothing after it corrupts every field that follows.
+The file opens with a header, written once when the file is created:
 
-ADIF has no field for a summit reference, so the summit, the S2S and the
-operator's remark are all folded into `comment_intl`:
+    ADIF export from SOTALog: HB9TVK/P at HB/OW-020 on 2026-08-19
+    <ADIF_VER:5>3.1.5
+    <PROGRAMID:7>SOTALog
+    <PROGRAMVERSION:5>3.0.2
+    <EOH>
 
-    SOTA <ref>[ S2S with <ref>][ Remark: <text>]
+Then one record per line:
+
+    <CALL:8>HB9DQM/P <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20260819
+    <TIME_ON:6>104500 <RST_RCVD:3>559 <RST_SENT:3>599
+    <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P
+    <MY_SOTA_REF:9>HB/OW-020 <SOTA_REF:9>HB/VS-266 <EOR>
+
+(wrapped here for readability; each record is one line).
+
+**`MY_SOTA_REF` is the summit being activated and `SOTA_REF` the one worked in
+a summit-to-summit.** Those two are what make the file uploadable. `SOTA_REF`
+is written only when there was an S2S.
+
+Every field declares its own length, and each is computed rather than assumed.
+A field with no value is left out entirely — writing `<RST_SENT:3>` with
+nothing after it contradicts itself and throws off every field that follows.
+
+The time carries seconds as `00`. SOTALog records the minute, and ADIF permits
+a bare `HHMM`, but every SOTA log seen in the wild uses `HHMMSS`. A partly
+typed time — fewer than four digits — is written as it stands rather than
+padded into a different time.
+
+Some fields other loggers write are deliberately absent, because SOTALog does
+not have the data and will not invent it: `FREQ` (it knows the band, not the
+frequency within it), and `GRIDSQUARE`, `MY_GRIDSQUARE`, `DXCC`, `CQZ` and
+`ITUZ` (it knows nothing about the other station's location). The operator's
+own remark goes in `COMMENT`.
 
 ## The summit database — `summits.thm`
 

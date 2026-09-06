@@ -12,7 +12,7 @@ namespace eval ::sotalog {
 
     # The release version, shown in the window title and used by the macOS
     # build, which reads this line out of this file.
-    variable SOTALOG_VERSION 3.0.1
+    variable SOTALOG_VERSION 3.0.2
 
     # The modes F8 cycles through.  Only CW gets the one-key report expansion;
     # SSB and FM reports are typed in full.

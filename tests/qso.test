@@ -44,31 +44,85 @@ test csv-no-stray-spaces {no field picks up a stray space} -body {
     list [llength $fields] [lindex $fields 3] [lindex $fields 6]
 } -result {10 05/09/2025 CW}
 
-test adif-basic {a complete ADIF record} -body {
+# The ADIF export, in the form the SOTA database accepts for upload.
+#
+# What makes it uploadable is MY_SOTA_REF for the summit being activated and
+# SOTA_REF for the one worked in a summit-to-summit.  Before 3.0.2 both went
+# into a free-text comment and the database rejected the file.
+
+test adif-basic {a complete record} -body {
     formatQsoAdif [qso]
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>579 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+} -result {<CALL:6>HB9XYZ <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <RST_RCVD:3>579 <RST_SENT:3>599 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
+
+test adif-carries-the-activated-summit {MY_SOTA_REF is what the database reads} -body {
+    string match "*<MY_SOTA_REF:9>HB/BE-003*" [formatQsoAdif [qso]]
+} -result 1
+
+test adif-summit-to-summit {a worked summit goes in SOTA_REF, not a comment} -body {
+    set record [formatQsoAdif [qso s2s HB/VS-001]]
+    list [string match "*<MY_SOTA_REF:9>HB/BE-003*" $record] \
+         [string match "*<SOTA_REF:9>HB/VS-001*" $record]
+} -result {1 1}
+
+test adif-no-summit-to-summit {and is absent when there was none} -body {
+    string match "*SOTA_REF*" [string map {MY_SOTA_REF {}} [formatQsoAdif [qso]]]
+} -result 0
 
 test adif-no-reports {absent reports are left out, not written with a false length} -body {
     formatQsoAdif [qso rsts "" rstr ""]
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+} -result {<CALL:6>HB9XYZ <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
 
 test adif-one-report {only the report that exists is written} -body {
     formatQsoAdif [qso rstr ""]
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+} -result {<CALL:6>HB9XYZ <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <RST_SENT:3>599 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
 
-test adif-comment {summit, S2S and remark all share the comment field} -body {
-    set r [formatQsoAdif [qso s2s HB/VS-001 rem "windy"]]
-    regexp {<comment_intl:(\d+)>(.*) <eor>} $r -> len text
-    # Assert the invariant rather than a magic number: the declared length has
-    # to match the content, which is the whole point of the earlier fix.
-    list [expr {$len == [string length $text]}] $text
-} -result {1 {SOTA HB/BE-003 S2S with HB/VS-001 Remark: windy}}
+test adif-remark-becomes-a-comment {the operator's remark is kept} -body {
+    string match "*<COMMENT:5>windy <EOR>" [formatQsoAdif [qso rem windy]]
+} -result 1
 
-test adif-band-uppercased {the wavelength is upper-cased for ADIF} -body {
-    set r [formatQsoAdif [qso band 30m freq 10.1MHz]]
-    regexp {<band:(\d+)>(\S+)} $r -> len text
-    list $len $text
-} -result {3 30M}
+test adif-band-is-lower-case {the band is written as ADIF spells it} -body {
+    set records {}
+    foreach band {40m 30m 2m 70cm} { lappend records [regexp -inline {<BAND:[0-9]+>[^ ]+} [formatQsoAdif [qso band $band]]] }
+    set records
+} -result {<BAND:3>40m <BAND:3>30m <BAND:2>2m <BAND:4>70cm}
+
+test adif-time-carries-seconds {the minute the application records, with zero seconds
+    ADIF allows a bare HHMM, but every SOTA log seen in the wild carries
+    HHMMSS.  A partly typed time is left alone rather than being padded into
+    something else.
+} -body {
+    list [regexp -inline {<TIME_ON:[0-9]+>[0-9]+} [formatQsoAdif [qso utc 0742]]] \
+         [regexp -inline {<TIME_ON:[0-9]+>[0-9]+} [formatQsoAdif [qso utc 74]]]
+} -result {<TIME_ON:6>074200 <TIME_ON:2>74}
+
+test adif-fm {FM reaches the record as its own mode} -body {
+    formatQsoAdif [qso mode FM rsts 59 rstr 57 band 2m freq 144MHz]
+} -result {<CALL:6>HB9XYZ <MODE:2>FM <BAND:2>2m <QSO_DATE:8>20250905 <TIME_ON:6>120500 <RST_RCVD:2>57 <RST_SENT:2>59 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
+
+test adif-header {the header the database needs before any record} -body {
+    formatAdifHeader [qso]
+} -result "ADIF export from SOTALog: HB9TVK/P at HB/BE-003 on 2025-09-05
+<ADIF_VER:5>3.1.5
+<PROGRAMID:7>SOTALog
+<PROGRAMVERSION:[string length $::sotalog::SOTALOG_VERSION]>$::sotalog::SOTALOG_VERSION
+<EOH>"
+
+test adif-every-length-is-honest {every field declares the length it actually has
+    This is what the old export got wrong: it wrote <rst_sent:3> followed by
+    nothing, which throws off every field after it.
+} -body {
+    set wrong {}
+    foreach sample [list [qso] [qso rsts "" rstr ""] [qso s2s HB/VS-001 rem "a longer remark"] \
+                         [qso band 70cm mode FM rsts 59 rstr 57]] {
+        foreach {whole name len value} \
+            [regexp -all -inline {<([A-Za-z_]+):([0-9]+)>([^<]*)} [formatQsoAdif $sample]] {
+            if {[string length [string trimright $value]] != $len} {
+                lappend wrong "$name declared $len, is [string length [string trimright $value]]"
+            }
+        }
+    }
+    set wrong
+} -result {}
 
 test parse-full {a line with reports and a remark comes apart again} -body {
     set q [parseQsoCsv {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,7.0MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579 nice sig"}]
@@ -93,11 +147,6 @@ test parse-ssb {two-character reports are recovered} -body {
 test csv-fm {FM reaches the CSV as its own mode} -body {
     formatQsoCsv [qso mode FM rsts 59 rstr 57 band 2m freq 144MHz]
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,144MHz,FM,HB9XYZ,,"RSTS:59 RSTR:57"}
-
-test adif-fm {and the ADIF record carries it too} -body {
-    formatQsoAdif [qso mode FM rsts 59 rstr 57 band 2m freq 144MHz]
-} -result {<qso_date:8:d>20250905 <time_on:4>1205 <call:6>HB9XYZ <band:2>2M <mode:2>FM <rst_sent:2>59 <rst_rcvd:2>57 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
-
 test roundtrip {format then parse returns what went in} -body {
     set original [qso rem "nice sig"]
     set back [parseQsoCsv [formatQsoCsv $original]]

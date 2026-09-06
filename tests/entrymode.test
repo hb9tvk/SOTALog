@@ -31,8 +31,16 @@ test csv-uses-typed-time {the typed time and the activation date reach the CSV} 
 } -result {V2,HB9TVK/P,HB/BE-003,05/09/2026,0742,7.0MHz,CW,OK1XYZ,,"RSTS:599 RSTR:599"}
 
 test adif-uses-typed-time {and the ADIF record agrees} -body {
-    string trim [readFile [file join $dir $::sotalog::adif]]
-} -result {<qso_date:8:d>20260905 <time_on:4>0742 <call:6>OK1XYZ <band:3>40M <mode:2>CW <rst_sent:3>599 <rst_rcvd:3>599 <station_callsign:8>HB9TVK/P <comment_intl:14>SOTA HB/BE-003 <eor>}
+    lindex [adifRecords [file join $dir $::sotalog::adif]] 0
+} -result {<CALL:6>OK1XYZ <MODE:2>CW <BAND:3>40m <QSO_DATE:8>20260905 <TIME_ON:6>074200 <RST_RCVD:3>599 <RST_SENT:3>599 <STATION_CALLSIGN:8>HB9TVK/P <OPERATOR:8>HB9TVK/P <MY_SOTA_REF:9>HB/BE-003 <EOR>}
+
+test adif-header-uses-the-activation-date {the header carries the configured date, not today} -body {
+    adifHeaderOf [file join $dir $::sotalog::adif]
+} -result "ADIF export from SOTALog: HB9TVK/P at HB/BE-003 on 2026-09-05
+<ADIF_VER:5>3.1.5
+<PROGRAMID:7>SOTALog
+<PROGRAMVERSION:[string length $::sotalog::SOTALOG_VERSION]>$::sotalog::SOTALOG_VERSION
+<EOH>"
 
 test reload-keeps-both-reports {a QSO with reports but no remark keeps its RSTr on reload
     This is the case that used to lose data: the parse required a space after
