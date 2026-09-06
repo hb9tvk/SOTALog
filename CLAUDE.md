@@ -65,7 +65,7 @@ That put spaces into the middle of every CSV record once. Build records with
 the language level before using anything newer.
 
 **`package provide SOTALog` must match `pkgIndex.tcl`**, major.minor only.
-`SOTALog.vfs/lib/SOTALog/pkgIndex.tcl` says `package ifneeded SOTALog 2.3`, so
+`SOTALog.vfs/lib/SOTALog/pkgIndex.tcl` says `package ifneeded SOTALog 3.0`, so
 bumping the minor version means changing that file in the same commit or the
 starkit will not load.
 The full version lives in `SOTALOG_VERSION` in `src/init.tcl`, which
