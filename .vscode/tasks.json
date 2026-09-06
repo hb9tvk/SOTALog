@@ -13,7 +13,7 @@
     // Tasks already default to running in the workspace folder, so no cwd is
     // needed either.
     //
-    // If Tcl lives somewhere else on this machine, change the four "windows"
+    // If Tcl lives somewhere else on this machine, change every "windows"
     // command paths below - forward slashes, no trailing quotes.
     "version": "2.0.0",
     "tasks": [
@@ -119,6 +119,22 @@
                 "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
             },
             "args": ["build.tcl"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build release bundle",
+            "detail": "Assemble SOTALog-<version>-win32.zip (run Build SOTALog.exe first)",
+            "type": "process",
+            "command": "tclsh",
+            "windows": {
+                "command": "C:/Program Files/Git/mingw64/bin/tclsh.exe"
+            },
+            "args": ["tools/release.tcl"],
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",

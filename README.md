@@ -43,8 +43,10 @@ launcher and the build read it, so the two cannot drift apart.
 | `main.tcl` | startup sequence |
 
 Data files sit next to the application: `names.txt`, `sotacalls.txt`,
-`summits.thm` and the optional `kx3.ini`. The logs the app writes
-(`YYYY-MM-DD_REF.csv` and `.adi`) and `sotalog.conf` land in the same place.
+`summits.thm` and the optional `kx3.ini` — copied from the tracked
+`kx3.ini.example`, which holds the serial port to read an Elecraft KX3 from.
+The logs the app writes (`YYYY-MM-DD_REF.csv` and `.adi`) and `sotalog.conf`
+land in the same place.
 
 ## Running from source
 
@@ -175,6 +177,25 @@ feather. `sotalog.ico` has all nine, so it is used directly.
 
 Requires [platypus](https://sveinbjorn.org/platypus) and a `tclsh` on the
 `PATH`. The version is read from `src/init.tcl`.
+
+### Release bundle
+
+```
+tclsh tools/release.tcl
+```
+
+Assembles `SOTALog-<version>-win32.zip` from the executable, the three data
+files, `LICENSE` and `kx3.ini.example`. It does not build the executable —
+run `wrap.tcl` first — and it does not fetch fresh data, so refresh
+`summits.thm`, `sotacalls.txt` and `names.txt` with **Update** before
+releasing. The bundle is deliberately flat: it is unpacked on a laptop that
+goes up a hill, and directories are a way for files to get separated from the
+executable that looks for them beside itself.
+
+The text the operator reads is [`dist/README.txt`](dist/README.txt), which is
+copied in with `@VERSION@` substituted. It is the only file in the bundle that
+is generated rather than copied, and the only place the release notes for
+non-programmers live — keep it current when behaviour changes.
 
 ## Display sizes
 

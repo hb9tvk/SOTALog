@@ -22,3 +22,10 @@
 # Editor and OS noise
 .DS_Store
 Thumbs.db
+
+# The operator's own KX3 serial port; kx3.ini.example is what ships.
+/kx3.ini
+
+# Staging for tools/release.tcl.
+/.release/
+/SOTALog-*.zip

@@ -23,9 +23,10 @@ tclsh tools/test.tcl       # the whole suite; add a name to filter
 tclsh tools/check.tcl      # parse every module without starting the GUI
 tclsh build.tcl            # concatenate src/ into sotalog.tcl
 tclsh wrap.tcl             # build SOTALog.exe
+tclsh tools/release.tcl    # assemble the release zip (wrap.tcl first)
 ```
 
-All five are VS Code tasks. `tclsh` on Windows is at
+All six are VS Code tasks. `tclsh` on Windows is at
 `C:/Program Files/Git/mingw64/bin/tclsh.exe`, shipped with Git for Windows.
 
 **Run it with `tclsh`, not `wish`.** `tclsh` is a console binary, so the Tk
