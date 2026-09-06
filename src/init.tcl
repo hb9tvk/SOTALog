@@ -280,18 +280,42 @@ proc ::sotalog::showMessage {icon title message} {
 # than inheriting whatever the system encoding happens to be - that is exactly
 # how summits.thm came to be misread.  UTF-8 matches the log files and leaves
 # the current contents byte for byte identical.
+# The operator names, keyed by callsign.
+#
+# Separator tolerance is deliberate.  The file bundled with the application
+# separates the call from the name with a space, the maintained one at qsl.net
+# does the same but starts with a "# Call Name" comment, and the mirror on
+# sota.hb9tvk.org serves it comma-separated with a "Call,Name" heading.  All
+# three load.
+#
+# A callsign always contains a digit, which is what distinguishes a real entry
+# from a heading or anything else that finds its way in.  Parsing with a
+# regular expression rather than list commands also means a stray brace in the
+# file cannot throw.
 proc ::sotalog::loadNames {} {
-
     variable names
     variable cwd
 
+    array unset names
     set fh [open [file join $cwd names.txt] r]
     fconfigure $fh -encoding utf-8
+
+    set skipped 0
     while {![eof $fh]} {
         gets $fh line
-        set names([lindex $line 0]) [lrange $line 1 end]
+        set line [string trim $line]
+        if {$line eq "" || [string index $line 0] eq "#"} { continue }
+
+        if {![regexp {^(\S+?)[,[:space:]][[:space:]]*(.*)$} $line -> call name]
+            || ![regexp {[0-9]} $call]} {
+            incr skipped
+            continue
+        }
+        set names($call) $name
     }
     close $fh
+
+    logMsg info "loaded [array size names] operator names, ignored $skipped line(s)"
 }
 
 proc ::sotalog::loadSotaCalls {} {

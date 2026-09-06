@@ -238,7 +238,7 @@ proc ::sotalog::configDialog {} {
         incr i
     }
     
-    label .cfg.updateCallsAndSummits -text "Update calls and summits" -font sotasmall
+    label .cfg.updateCallsAndSummits -text "Update summits, calls and names" -font sotasmall
     button .cfg.update -text Update -command ::sotalog::updateCallsAndSummits
     
     button .cfg.ok -text Ok -command $ok

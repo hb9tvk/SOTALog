@@ -107,15 +107,31 @@ survives, but the feed needs fixing at the source. See
 
 ## The operator names — `names.txt`
 
-Read by `loadNames` in [`src/init.tcl`](../src/init.tcl). UTF-8, ASCII in
+Read by `loadNames` in [`src/init.tcl`](../src/init.tcl), downloaded by
+`updateDataFile` in [`src/update.tcl`](../src/update.tcl). UTF-8, ASCII in
 practice. One line per operator: the callsign, then the name, which may be
 several words.
 
-    2E0ATS Jim
-    G4XYZ John Smith
+Three shapes of this file are in circulation and all of them load:
 
-Hand-maintained; there is no feed for it. When a call being typed matches, the
-name replaces the summit information above the entry fields, in blue.
+    2E0ATS Jim                                  bundled with the application
+    # Call Name (created at ...)                the maintained one at qsl.net
+    2D0EDQ Dawn
+    Call,Name (created at ...)                  the sota.hb9tvk.org mirror
+    2D0EDQ,Dawn
+
+The call is taken up to the first comma or space, so the separator does not
+matter, and the rest of the line is the name. Two kinds of line are skipped:
+blanks and anything starting with `#`, and anything whose callsign contains no
+digit — every real callsign has one, which is what tells a heading from an
+entry. That also drops the handful of bad rows upstream carries, such as
+`EMAIL,Alessandro` and calls written with a letter O where a zero belongs;
+none of them could ever match a call the operator types. A callsign with no
+name at all is skipped too, since there is nothing to display.
+
+The maintained file holds about 74,000 names against the 545 bundled here.
+When a call being typed matches, the name replaces the summit information above
+the entry fields, in blue.
 
 ## The configuration — `sotalog.conf`
 

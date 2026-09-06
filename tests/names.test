@@ -1,0 +1,108 @@
+# Loading the operator names.
+#
+# Three shapes of this file are in circulation and all have to load: the one
+# bundled with the application separates call from name with a space, the
+# maintained one at qsl.net does the same but opens with a "# Call Name"
+# comment, and the mirror on sota.hb9tvk.org serves it comma-separated under a
+# "Call,Name" heading.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+
+proc writeNames {contents} {
+    set dir [sandbox]
+    set fh [open [file join $dir names.txt] w]
+    fconfigure $fh -encoding utf-8 -translation lf
+    puts -nonewline $fh $contents
+    close $fh
+    set ::sotalog::cwd $dir
+}
+
+test names-space-separated {the bundled format} -setup {
+    writeNames "2E0ATS Jim\nHB9TVK Peter\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] $::sotalog::names(2E0ATS) $::sotalog::names(HB9TVK)
+} -result {2 Jim Peter}
+
+test names-comma-separated {the format the mirror serves} -setup {
+    writeNames "2D0EDQ,Dawn\nHB9TVK,Peter\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] $::sotalog::names(2D0EDQ) $::sotalog::names(HB9TVK)
+} -result {2 Dawn Peter}
+
+test names-hash-comment-skipped {the qsl.net heading is a comment} -setup {
+    writeNames "# Call Name (created at 2026-08-16T12:59Z with 74,244 calls)\n2D0EDQ Dawn\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] [info exists ::sotalog::names(#)]
+} -result {1 0}
+
+test names-plain-heading-skipped {and so is the mirror's, which has no comment marker
+    A callsign always contains a digit; "Call" does not, which is what tells a
+    heading from an entry.
+} -setup {
+    writeNames "Call,Name (created at 2026-08-16T12:59Z with 74,244 calls)\n2D0EDQ,Dawn\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] [info exists ::sotalog::names(Call)]
+} -result {1 0}
+
+test names-with-spaces {a name of several words is kept whole} -setup {
+    writeNames "HB9XYZ Hans Peter\nDL1ABC,Klaus Dieter\n"
+} -body {
+    list $::sotalog::names(HB9XYZ) $::sotalog::names(DL1ABC)
+} -setup {
+    writeNames "HB9XYZ Hans Peter\nDL1ABC,Klaus Dieter\n"
+    loadNames
+} -result {{Hans Peter} {Klaus Dieter}}
+
+test names-without-a-name-are-skipped {a callsign on its own has nothing to show
+    The bundled file has one of these, FO2BAR.  It used to be stored with an
+    empty name, which blanked the information line when that call was typed
+    instead of leaving the summit details up.
+} -setup {
+    writeNames "FO2BAR\nHB9TVK Peter\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] [info exists ::sotalog::names(FO2BAR)]
+} -result {1 0}
+
+test names-junk-without-a-digit-is-skipped {entries whose call cannot be one are dropped
+    The maintained file carries a few, such as "EMAIL,Alessandro" and calls
+    written with a letter O where a zero belongs.  None of them could ever be
+    matched against a call the operator types.
+} -setup {
+    writeNames "EMAIL,Alessandro\nGOBPU,Michael\nG0BPU,Michael\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] [info exists ::sotalog::names(G0BPU)]
+} -result {1 1}
+
+test names-blank-lines-ignored {blank lines are not entries} -setup {
+    writeNames "\n2E0ATS Jim\n\n\nHB9TVK Peter\n\n"
+} -body {
+    loadNames
+    array size ::sotalog::names
+} -result 2
+
+test names-braces-do-not-throw {a stray brace is data, not Tcl syntax} -setup {
+    # The brace is escaped so Tcl does not count it while parsing this test;
+    # loadNames still sees a literal one in the file.
+    writeNames "HB9XYZ \{Hans\nDL1ABC Klaus\n"
+} -body {
+    loadNames
+    list [array size ::sotalog::names] $::sotalog::names(DL1ABC)
+} -result {2 Klaus}
+
+test names-is-in-the-update {the file is fetched alongside the summits and calls} -body {
+    list [info exists ::sotalog::updateMinBytes(names.txt)] \
+         [info exists ::sotalog::updateEncoding(names.txt)] \
+         $::sotalog::updateEncoding(names.txt)
+} -result {1 1 utf-8}
+
+removeSandboxes
+cleanupTests

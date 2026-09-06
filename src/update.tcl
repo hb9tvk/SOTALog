@@ -15,6 +15,7 @@ namespace eval ::sotalog {
     array set updateMinBytes {
         summits.thm   1000000
         sotacalls.txt 10000
+        names.txt     500000
     }
 
     # Encoding each downloaded file is written in.
@@ -33,6 +34,7 @@ namespace eval ::sotalog {
     array set updateEncoding {
         summits.thm   iso8859-1
         sotacalls.txt utf-8
+        names.txt     utf-8
     }
 }
 
@@ -104,6 +106,7 @@ proc ::sotalog::writeDataFile {name data} {
     return ""
 }
 
+# Fetches every data file the application keeps up to date.
 proc ::sotalog::updateCallsAndSummits {} {
 
     variable updated
@@ -120,6 +123,7 @@ proc ::sotalog::updateCallsAndSummits {} {
     foreach {name label} {
         summits.thm   "Updating summit list:"
         sotacalls.txt "Updating SOTA callsigns:"
+        names.txt     "Updating operator names:"
     } {
         .cfg.progresslabel configure -text $label
         .cfg.progress configure -value 0
@@ -144,7 +148,7 @@ proc ::sotalog::updateCallsAndSummits {} {
             "Update failed. Your existing data has been kept.\n\n[join $failed \n\n]"
     } else {
         showMessage info "Update complete" \
-            "Summits and calls updated successfully"
+            "Summits, calls and names updated successfully"
     }
 
     foreach c $controls { $c configure -state normal }
