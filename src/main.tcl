@@ -36,6 +36,12 @@ namespace eval ::sotalog {
     variable mode CW
 
     createFonts
+    loadConfig
+
+    # Scale the fonts before anything is built from them, so that the reference
+    # dialog is drawn at the configured size too and not just the log window.
+    if {$uiScale != 100} { scaleFonts [expr {$uiScale / 100.0}] }
+
     enterRef
 }
 
@@ -43,13 +49,6 @@ namespace eval ::sotalog {
 vwait ::sotalog::enteredRef
 
 namespace eval ::sotalog {
-    loadConfig
-
-    # The fonts exist by now - createFonts runs before the reference dialog,
-    # which is what the operator sees first - so the configured size is applied
-    # to them here, before the log window is built from them.
-    if {$uiScale != 100} { scaleFonts [expr {$uiScale / 100.0}] }
-
     loadNames
     loadSotaCalls
     initCounter

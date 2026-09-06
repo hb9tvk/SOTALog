@@ -222,6 +222,7 @@ proc ::sotalog::centreOnMain {win} {
 
     set width [winfo reqwidth $win]
     set height [winfo reqheight $win]
+
     set wantX [expr {[winfo rootx .] + ([winfo width .] - $width) / 2}]
     set wantY [expr {[winfo rooty .] + ([winfo height .] - $height) / 2}]
 

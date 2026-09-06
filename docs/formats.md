@@ -155,8 +155,9 @@ is unchanged, so existing files still load.
 
 `uiScale` is how large the log window is drawn, as a percentage of the size the
 application has always used, set with the slider in the configuration dialog.
-Everything in that window is laid out from point-sized fonts, so one number
-scales the lot. It ranges from 100 to 300 and only goes upwards: `fitToScreen`
+Everything the application draws is laid out from point-sized fonts, so one
+number scales the lot, the reference dialog included: main.tcl reads the
+configuration and scales the fonts before building anything. It ranges from 100 to 300 and only goes upwards: `fitToScreen`
 already shrinks the layout when it will not fit the display, and this is for an
 operator who needs it larger. A size outside that range, or one that is not a
 number, is pulled back. Changing it needs a restart.

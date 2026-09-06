@@ -326,6 +326,5 @@ test dialog-cancel-keeps-the-selection {cancelling changes nothing} -setup {
     configDialog
     set ::sotalog::bands
 } -result {40m 20m}
-
 removeSandboxes
 cleanupTests

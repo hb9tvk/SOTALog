@@ -42,6 +42,36 @@ test scaling-reports-whether-it-changed-anything {and says when there is nothing
 } -result 0
 
 # Put the fonts back, scale to 150%, and open the window on that.
+test reference-dialog-scales-too {the summit entry dialog follows the fonts
+    It is built from the same fonts as the log window but before it, so the
+    display size has to be applied before enterRef rather than after.  That is
+    why loadConfig moved ahead of the reference dialog in main.tcl: read the
+    configuration, scale, then build anything.
+} -setup {
+    foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} size $baseSizes {
+        font configure $f -size $size
+    }
+    destroy .ref
+} -cleanup {
+    destroy .ref
+    foreach f {sotahuge sotabig sotasmall sotamini sotamicro sotamono} size $baseSizes {
+        font configure $f -size $size
+    }
+} -body {
+    enterRef
+    update idletasks
+    set normal [winfo reqwidth .ref]
+
+    destroy .ref
+    scaleFonts 2.0
+    enterRef
+    update idletasks
+    set doubled [winfo reqwidth .ref]
+
+    # Not exactly double: borders and padding are in pixels, not points.
+    expr {$doubled > $normal * 1.7 && $doubled < $normal * 2.3}
+} -result 1
+
 test window-grows-with-the-fonts {the whole window scales, not just the text
     150% of the sizes the application ships with should give a window about
     half as large again.
