@@ -22,10 +22,11 @@ proc ::sotalog::clear {} {
 
 proc ::sotalog::initCounter {} {
     variable qsocount
-    variable bandlist
+    variable bands
 
-    foreach {wl fq} $bandlist {
-        set qsocount($wl) 0
+    array unset qsocount
+    foreach wavelength $bands {
+        set qsocount($wavelength) 0
     }
 }
 
@@ -42,21 +43,20 @@ proc ::sotalog::modeToggle {} {
 
 proc ::sotalog::bandSwitch {up} {
     variable band
-    variable bandlist
+    variable bands
 
-    set pos [lsearch -exact $bandlist $band]
-    if {$up && $pos == [expr [llength $bandlist] - 2]} {
-        set pos -2
+    set pos [lsearch -exact $bands $band]
+    if {$pos < 0} {
+        # Nothing selected yet, so start from whichever end is being moved
+        # towards.
+        set band [lindex $bands [expr {$up ? 0 : "end"}]]
+        return
     }
-    if {! $up && $pos == 0} {
-        set pos [llength $bandlist]
-    }
-    if {$up} {
-        incr pos 2
-    } else {
-        incr pos -2
-    }	
-    set band [lindex $bandlist $pos]
+
+    incr pos [expr {$up ? 1 : -1}]
+    if {$pos >= [llength $bands]} { set pos 0 }
+    if {$pos < 0} { set pos [expr {[llength $bands] - 1}] }
+    set band [lindex $bands $pos]
 }
 
 proc ::sotalog::updateSuggestions {part} {
@@ -107,7 +107,11 @@ proc ::sotalog::insertLog {utc call rsts rstr rem} {
 	set s [expr $s ^ 1]
     }
     incr qsocount($band)
-    .bandmap.l$band configure -text "($qsocount($band))" -font sotamicro
+    # A reopened log can hold QSOs on a band that is no longer displayed, and
+    # those have no counter beside them.
+    if {[winfo exists .bandmap.l$band]} {
+        .bandmap.l$band configure -text "($qsocount($band))" -font sotamicro
+    }
 }
 
 proc ::sotalog::logwindow {ref info} {
@@ -115,7 +119,7 @@ proc ::sotalog::logwindow {ref info} {
     variable band
     variable box
     variable qsocount
-    variable bandlist
+    variable bands
     variable mode
     variable entryMode
     global tcl_platform
@@ -181,13 +185,14 @@ proc ::sotalog::logwindow {ref info} {
 
     frame .bandmap
     set i 0
-    foreach {wl fq} $bandlist {
-        radiobutton .bandmap.w$wl -text "$wl" -variable ::sotalog::band -value "$wl" -font sotamicro \
+    foreach wavelength $bands {
+        radiobutton .bandmap.w$wavelength -text $wavelength \
+            -variable ::sotalog::band -value $wavelength -font sotamicro \
             -takefocus 0 -selectcolor yellow -indicatoron 0 -pady -2
-    	label .bandmap.l$wl -text "($qsocount($band))" -font sotamicro
-        grid .bandmap.l$wl -row $i -column 0
-        grid .bandmap.w$wl -row $i -column 1 -sticky w
-    	incr i
+        label .bandmap.l$wavelength -text "($qsocount($wavelength))" -font sotamicro
+        grid .bandmap.l$wavelength -row $i -column 0
+        grid .bandmap.w$wavelength -row $i -column 1 -sticky w
+        incr i
     }
 
     frame .loghist

@@ -22,6 +22,47 @@ namespace eval ::sotalog {
     # under test, so anything it declares has to be duplicated in the harness,
     # and duplicated lists drift.
     variable modes [list CW SSB FM]
+
+    # Every band SOTA accepts, with the frequency string the CSV records for
+    # it, lowest frequency first.
+    #
+    # The eight bands the application has always offered keep the strings it
+    # has always written.  Those differ from the values SOTA documents - 7.0MHz
+    # where the specification says 7MHz, 10.1MHz where it says 10MHz - but they
+    # have been accepted for a decade, and changing them now would leave new
+    # logs inconsistent with old ones.  The bands added in 2026 use the
+    # documented values.
+    variable allBands [list \
+        160m 1.8MHz \
+        80m  3.5MHz \
+        60m  5.0MHz \
+        40m  7.0MHz \
+        30m  10.1MHz \
+        20m  14.0MHz \
+        17m  18.0MHz \
+        15m  21.0MHz \
+        12m  24.8MHz \
+        10m  28MHz \
+        6m   50MHz \
+        4m   70MHz \
+        2m   144MHz \
+        70cm 432MHz \
+        23cm 1240MHz]
+
+    # Shown when nothing has been configured: the eight bands the application
+    # offered before they became selectable.
+    variable defaultBands [list 60m 40m 30m 20m 17m 15m 12m 10m]
+
+    # Wavelength to frequency and back, over every band rather than only the
+    # selected ones.  A log may hold QSOs on a band that is no longer shown,
+    # and it still has to be read back and written out correctly.
+    variable w2f
+    variable f2w
+    array set w2f $allBands
+    foreach {sotalogWavelength sotalogFrequency} $allBands {
+        set f2w($sotalogFrequency) $sotalogWavelength
+    }
+    unset sotalogWavelength sotalogFrequency
 }
 
 # The package version keeps only major.minor, so that it goes on matching the

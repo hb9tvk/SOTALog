@@ -10,12 +10,12 @@ namespace import ::tcltest::*
 namespace import ::sotalogtest::*
 loadModules
 
-set ::sotalog::bandlist $::sotalogtest::bandlist
+set ::sotalog::bands $::sotalog::defaultBands
 
 # The wavelengths, without the frequencies they alternate with.
 proc wavelengths {} {
     set bands {}
-    foreach {wl fq} $::sotalog::bandlist { lappend bands $wl }
+    foreach wl $::sotalog::bands { lappend bands $wl }
     return $bands
 }
 
@@ -87,6 +87,47 @@ test unknown-reply-leaves-the-band-alone {a band the map does not cover is ignor
     }
     set results
 } -result {30m 40m}
+
+# Reopening a log written on a band that is no longer displayed.  This needs
+# the real window, because insertLog updates a counter beside each band and
+# there is none for a band that is not shown.
+
+set ::env(TZ) UTC
+freezeClock 1757073930
+set dir [sandbox]
+
+test hidden-band-still-reloads {a QSO on an unselected band lands on the right band
+    The frequency is mapped through the whole band table, not the selection,
+    so hiding a band does not corrupt logs that used it.
+} -setup {
+    # Only two bands displayed; the log below was made on a third.
+    set ::sotalog::bands {40m 20m}
+    startLogWindow $dir 0
+    set fh [open [file join $dir $::sotalog::logfile] w]
+    fconfigure $fh -encoding utf-8 -translation lf
+    puts $fh {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,10.1MHz,CW,HB9XYZ,,"RSTS:599 RSTR:579"}
+    close $fh
+    set ::sotalog::box {}
+    initCounter
+    .loghist.box delete 0 end
+} -body {
+    readLog
+    list $::sotalog::band [llength $::sotalog::box] $::sotalog::qsocount(30m)
+} -result {30m 1 1}
+
+test unknown-frequency-leaves-the-band-alone {a frequency not in the table is ignored} -setup {
+    set fh [open [file join $dir $::sotalog::logfile] w]
+    fconfigure $fh -encoding utf-8 -translation lf
+    puts $fh {V2,HB9TVK/P,HB/BE-003,05/09/2025,1205,99MHz,CW,G0XYZ,,""}
+    close $fh
+    set ::sotalog::band 40m
+    set ::sotalog::box {}
+    initCounter
+    .loghist.box delete 0 end
+} -body {
+    readLog
+    list $::sotalog::band [llength $::sotalog::box]
+} -result {40m 1}
 
 removeSandboxes
 cleanupTests

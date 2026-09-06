@@ -16,11 +16,6 @@ namespace eval sotalogtest {
     variable root [file dirname [file dirname [file normalize [info script]]]]
     variable now 0
     variable sandboxes {}
-
-    # The band table main.tcl builds at startup.  Repeated here so that tests
-    # of the log format need not run the whole startup sequence.
-    variable bandlist {60m 5.0MHz 40m 7.0MHz 30m 10.1MHz 20m 14.0MHz
-                       17m 18.0MHz 15m 21.0MHz 12m 24.8MHz 10m 28MHz}
 }
 
 # Sources every application module except main.tcl, which starts the app.
@@ -89,7 +84,6 @@ proc sotalogtest::freezeClock {seconds} {
 # these tests are about what reaches the log files, and loading the 13 MB
 # summit list to get there would cost seconds per test for no benefit.
 proc sotalogtest::startLogWindow {dir {entryModeOn 0}} {
-    variable bandlist
 
     set ::sotalog::cwd $dir
     set ::sotalog::myCall HB9TVK/P
@@ -101,8 +95,10 @@ proc sotalogtest::startLogWindow {dir {entryModeOn 0}} {
     set ::sotalog::oneKeyReport 1
     set ::sotalog::box {}
     set ::sotalog::sinfo "Alt: 3967 Pts: 10"
-    set ::sotalog::bandlist $bandlist
-    array set ::sotalog::w2f $bandlist
+    # The band table itself lives in init.tcl, which loadModules sources, so
+    # only the selection has to be set here - main.tcl is not loaded under
+    # test and that is the only thing it decides.
+    set ::sotalog::bands $::sotalog::defaultBands
     array set ::sotalog::names {}
     set ::sotalog::sotacalls {}
 

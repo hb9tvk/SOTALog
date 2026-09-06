@@ -170,7 +170,7 @@ proc ::sotalog::readLog {} {
     # deliberately is not restored: it stays at the session default instead of
     # following whatever the final QSO happened to use.
     variable logfile
-    variable bandlist
+    variable f2w
     variable band
     variable cwd
 
@@ -182,11 +182,16 @@ proc ::sotalog::readLog {} {
 
         set qso [parseQsoCsv $csvline]
 
-        # Only the frequency is recorded, and the band table interleaves
-        # wavelength and frequency, so the wavelength is the entry before it.
-        set pos [lsearch -exact $bandlist [dict get $qso freq]]
-        incr pos -1
-        set band [lindex $bandlist $pos]
+        # Only the frequency is recorded.  It is mapped back through the whole
+        # band table rather than the selected bands, so a QSO on a band that is
+        # no longer displayed still lands on the right one; an unrecognised
+        # frequency leaves the band alone rather than setting nonsense.
+        set frequency [dict get $qso freq]
+        if {[info exists f2w($frequency)]} {
+            set band $f2w($frequency)
+        } else {
+            logMsg error "unknown frequency $frequency in $logfile, band left unchanged"
+        }
 
         insertLog [dict get $qso utc] [dict get $qso call] \
             [dict get $qso rsts] [dict get $qso rstr] [dict get $qso rem]

@@ -32,11 +32,10 @@ namespace eval ::sotalog {
 
     logMsg info "SOTALog $SOTALOG_VERSION starting, data directory: $cwd"
 
-    # The band table pairs each wavelength with the frequency the CSV records.
-    variable bandlist [list 60m 5.0MHz 40m 7.0MHz 30m 10.1MHz 20m 14.0MHz \
-                            17m 18.0MHz 15m 21.0MHz 12m 24.8MHz 10m 28MHz]
-    variable w2f
-    array set w2f $bandlist
+    # The bands offered in this session.  The table they come from, and the
+    # frequency each maps to, live in init.tcl so that the tests see the same
+    # ones the application does.
+    variable bands $defaultBands
 
     variable s2s ""
     variable mode CW

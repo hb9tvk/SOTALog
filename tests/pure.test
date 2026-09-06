@@ -39,7 +39,7 @@ test basecall-degenerate {trailing slashes and empty input do not confuse it} -b
 
 test bandswitch-up {stepping up runs through the bands and wraps} -setup {
     set ::sotalog::band 40m
-    set ::sotalog::bandlist $::sotalogtest::bandlist
+    set ::sotalog::bands $::sotalog::defaultBands
 } -body {
     set seq {}
     for {set i 0} {$i < 8} {incr i} { lappend seq $::sotalog::band; bandSwitch 1 }
@@ -48,7 +48,7 @@ test bandswitch-up {stepping up runs through the bands and wraps} -setup {
 
 test bandswitch-down {stepping down wraps the other way} -setup {
     set ::sotalog::band 40m
-    set ::sotalog::bandlist $::sotalogtest::bandlist
+    set ::sotalog::bands $::sotalog::defaultBands
 } -body {
     set seq {}
     for {set i 0} {$i < 8} {incr i} { lappend seq $::sotalog::band; bandSwitch 0 }
@@ -56,12 +56,12 @@ test bandswitch-down {stepping down wraps the other way} -setup {
 } -result {40m 60m 10m 12m 15m 17m 20m 30m}
 
 test initcounter {every band starts on zero} -setup {
-    set ::sotalog::bandlist $::sotalogtest::bandlist
+    set ::sotalog::bands $::sotalog::defaultBands
     array unset ::sotalog::qsocount
 } -body {
     initCounter
     set total 0
-    foreach {wl fq} $::sotalog::bandlist { incr total $::sotalog::qsocount($wl) }
+    foreach wl $::sotalog::bands { incr total $::sotalog::qsocount($wl) }
     list [array size ::sotalog::qsocount] $total
 } -result {8 0}
 
