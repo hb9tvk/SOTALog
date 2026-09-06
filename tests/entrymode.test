@@ -13,6 +13,10 @@ freezeClock 1757073930
 set dir [sandbox]
 startLogWindow $dir 1
 
+# The window now opens with no band chosen; these tests are about what reaches
+# the log files, so pick one as the operator would.
+set ::sotalog::band 40m
+
 test filenames-from-activation-date {the log is named for the configured date, not today} -body {
     list $::sotalog::logfile $::sotalog::adif
 } -result {2026-09-05_HB_BE-003.csv 2026-09-05_HB_BE-003.adi}

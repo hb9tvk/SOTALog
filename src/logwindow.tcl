@@ -130,13 +130,12 @@ proc ::sotalog::logwindow {ref info} {
     wm geometry . +0+0
     update idletasks
 
-    # 40m is where an activation usually starts, but it need not be among the
-    # bands the operator has chosen to show, so fall back to the first that is.
-    if {[lsearch -exact $bands 40m] >= 0} {
-        set band 40m
-    } else {
-        set band [lindex $bands 0]
-    }
+    # No band to begin with, so nothing is highlighted in the panel and the
+    # operator has to choose.  Entering QSOs at home after an activation, the
+    # band is easy to forget, and one silently left at a default is worse than
+    # being asked: saveLog refuses to log without one.  A resumed log sets it
+    # again from the last QSO, in readLog.
+    set band ""
 
     bind . <Return> { ::sotalog::saveLog }
     bind . <Escape> { ::sotalog::clear }

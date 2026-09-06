@@ -225,12 +225,22 @@ proc ::sotalog::openLog {ref} {
 
 proc ::sotalog::saveLog {} {
 
+    variable band
     variable logfile
     variable adif
     variable cwd
 
     if {[string length [.sotalog.call get]] == 0} {
         clear
+        return
+    }
+
+    # Without a band there is no frequency to record, and qsoFromEntry would
+    # fail looking one up.  Say so and leave what was typed alone, so the
+    # operator can pick a band and press Return again.
+    if {![string length $band]} {
+        tk_messageBox -icon warning -type ok -title "No band selected" \
+            -message "Select a band before logging this QSO."
         return
     }
 

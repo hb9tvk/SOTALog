@@ -1,0 +1,53 @@
+# What the log window looks like the moment it opens.
+#
+# The window can only be built once per interpreter, so the assertions that
+# need a freshly opened one live here on their own.
+
+source [file join [file dirname [info script]] helpers.tcl]
+namespace import ::tcltest::*
+namespace import ::sotalogtest::*
+loadModules
+freezeClock 1757073930
+
+set dir [sandbox]
+set ::sotalog::bands $::sotalog::defaultBands
+# Something other than empty, so that the window is seen to clear it.
+set ::sotalog::band "left-over-from-somewhere"
+startLogWindow $dir 0
+
+test opens-with-no-band {no band is chosen for the operator
+    Entering QSOs at home after an activation, the band is easy to forget, and
+    one silently left at a default is worse than being asked for it.
+} -body {
+    set ::sotalog::band
+} -result {}
+
+test no-radiobutton-is-highlighted {and nothing is highlighted in the panel} -body {
+    set selected {}
+    foreach wavelength $::sotalog::bands {
+        if {[.bandmap.w$wavelength cget -value] eq $::sotalog::band} {
+            lappend selected $wavelength
+        }
+    }
+    set selected
+} -result {}
+
+test every-selected-band-has-a-button {each band offered gets a button and a counter} -body {
+    set missing {}
+    foreach wavelength $::sotalog::bands {
+        if {![winfo exists .bandmap.w$wavelength]} { lappend missing "button $wavelength" }
+        if {![winfo exists .bandmap.l$wavelength]} { lappend missing "counter $wavelength" }
+    }
+    set missing
+} -result {}
+
+test counters-start-at-zero {and every counter starts empty} -body {
+    set nonzero {}
+    foreach wavelength $::sotalog::bands {
+        if {$::sotalog::qsocount($wavelength) != 0} { lappend nonzero $wavelength }
+    }
+    set nonzero
+} -result {}
+
+removeSandboxes
+cleanupTests

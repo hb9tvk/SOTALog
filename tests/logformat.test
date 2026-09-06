@@ -17,6 +17,10 @@ freezeClock 1757073930   ;# 2025-09-05 12:05:30 UTC
 set dir [sandbox]
 startLogWindow $dir 0
 
+# The window now opens with no band chosen; these tests are about what reaches
+# the log files, so pick one as the operator would.
+set ::sotalog::band 40m
+
 test filenames {the log file is named for the date and the summit reference} -body {
     list $::sotalog::logfile $::sotalog::adif
 } -result {2025-09-05_HB_BE-003.csv 2025-09-05_HB_BE-003.adi}
