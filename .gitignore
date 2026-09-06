@@ -2,6 +2,7 @@
 # wrap turns it into the executable.  Both are generated - never edit them.
 /sotalog.tcl
 /SOTALog.vfs/lib/SOTALog/sotalog.tcl
+/SOTALog.vfs/tclkit.ico
 /SOTALog
 /SOTALog.exe
 /SOTALog-*.app/

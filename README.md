@@ -141,15 +141,31 @@ Code this is the **Build SOTALog.exe** task. Everything it needs is committed â€
 the VFS and the tools in [`tools/tclkit/`](tools/tclkit/), whose README says
 what each binary is for and where the runtime came from.
 
-The VFS holds the starkit bootstrap, the package index, the icons sdx applies
-to the executable, and a vestigial `http1.0` that the runtime shadows with its
-own newer `http`. The data files are not inside it: `main.tcl` resolves them
+The VFS holds the starkit bootstrap, the package index, and a vestigial
+`http1.0` that the runtime shadows with its own newer `http`. `wrap.tcl` also
+copies `sotalog.ico` into it as `tclkit.ico`, which is the name sdx looks for
+when replacing the executable's icons. The data files are not inside it: `main.tcl` resolves them
 relative to the executable, so `names.txt`, `sotacalls.txt`, `summits.thm` and
 the optional `kx3.ini` sit beside `SOTALog.exe`.
 
 The shipped runtime is Tcl/Tk **8.6.3**. It was 8.4.13 until 2026 â€” see
 [`tools/tclkit/README.md`](tools/tclkit/README.md) for why it moved, and note
 that the 8.4 kit is still needed at build time to host sdx.
+
+#### The icon
+
+sdx replaces the runtime's icon resources with the images from `tclkit.ico`,
+matching each to a resource of the same byte size, and refuses any that do not
+match - it prints `NOT SAME SIZE` for those. That is normal and not all nine
+ever match. What matters is the three 32-bit images: those are the ones Windows
+Vista and later display, and if they are missing the executable wears the
+tclkit feather. `wrap.tcl` checks for them after wrapping and warns if none
+arrived.
+
+This is why the icon broke when the runtime moved to 8.6.3. The old
+`tclkit.ico` held only 4-bit and 8-bit images, which was enough for the 8.4
+runtime; the 8.6.3 one carries 32-bit resources as well, and those kept the
+feather. `sotalog.ico` has all nine, so it is used directly.
 
 ### macOS application
 
